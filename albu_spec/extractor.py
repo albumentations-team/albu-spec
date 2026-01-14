@@ -182,9 +182,9 @@ class TransformMetadataExtractor:
         origin = get_origin(type_annotation)
         args = get_args(type_annotation)
 
-        # Handle Literal
+        # Handle Literal - preserve original types (ints, strings, etc.)
         if origin is Literal:
-            return [str(arg) for arg in args]
+            return list(args)
 
         # Handle Union (including | syntax)
         if origin is type(int | str) or (origin and "Union" in str(origin)):

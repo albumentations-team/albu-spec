@@ -49,7 +49,7 @@ Repository = "https://github.com/albumentations-team/albu-spec"
 Documentation = "https://github.com/albumentations-team/albu-spec#readme"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["albu_spec"]
 
 [tool.setuptools.package-data]
 albu_spec = ["py.typed"]

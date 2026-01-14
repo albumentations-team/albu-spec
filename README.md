@@ -37,23 +37,102 @@ pip install albumentationsx
 import albumentations as A
 from albu_spec import get_transform_metadata
 
-# Get metadata for Blur transform
-metadata = get_transform_metadata(A.Blur)
+# Get metadata for Affine transform
+metadata = get_transform_metadata(A.Affine)
 
 print(f"Transform: {metadata.name}")
 print(f"Type: {metadata.transform_type}")
 print(f"Module: {metadata.module}")
+print(f"Targets: {metadata.targets}")
 print(f"Has InitSchema: {metadata.has_init_schema}")
-print(f"\nParameters:")
+```
 
+**Output:**
+
+```
+Transform: Affine
+Type: dual
+Module: albumentations.augmentations.geometric.transforms
+Targets: ['image', 'mask', 'bboxes', 'keypoints', 'volume', 'mask3d']
+Has InitSchema: True
+```
+
+**Full metadata as JSON:**
+
+```json
+{
+  "name": "Affine",
+  "module": "albumentations.augmentations.geometric.transforms",
+  "transform_type": "dual",
+  "targets": ["image", "mask", "bboxes", "keypoints", "volume", "mask3d"],
+  "parameters": {
+    "scale": {
+      "name": "scale",
+      "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]]",
+      "default": [1.0, 1.0],
+      "description": null,
+      "constraints": null
+    },
+    "translate_percent": {
+      "name": "translate_percent",
+      "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]] | None",
+      "default": null,
+      "description": null,
+      "constraints": null
+    },
+    "rotate": {
+      "name": "rotate",
+      "type_hint": "tuple[float, float] | float",
+      "default": 0.0,
+      "description": null,
+      "constraints": null
+    },
+    "interpolation": {
+      "name": "interpolation",
+      "type_hint": [0, 1, 2, 3, 4],
+      "default": 1,
+      "description": null,
+      "constraints": null
+    },
+    "p": {
+      "name": "p",
+      "type_hint": "float",
+      "default": 0.5,
+      "description": null,
+      "constraints": {
+        "ge": 0.0,
+        "le": 1.0,
+        "gt": null,
+        "lt": null,
+        "min_length": null,
+        "max_length": null,
+        "multiple_of": null,
+        "min_value": null,
+        "max_value": null,
+        "pattern": null,
+        "validators": [],
+        "validator_info": {}
+      }
+    }
+  },
+  "docstring": "Augmentation to apply affine transformations to images...",
+  "docstring_short": "Augmentation to apply affine transformations to images.",
+  "has_init_schema": true
+}
+```
+
+*(Note: Some parameters omitted for brevity)*
+
+### Inspect Individual Parameters
+
+```python
+# Check parameter details
 for param_name, param_info in metadata.parameters.items():
-    print(f"  {param_name}:")
-    print(f"    Type: {param_info.type_hint}")
-    print(f"    Default: {param_info.default}")
-    if param_info.description:
-        print(f"    Description: {param_info.description[:100]}...")
+    print(f"{param_name}:")
+    print(f"  Type: {param_info.type_hint}")
+    print(f"  Default: {param_info.default}")
     if param_info.constraints:
-        print(f"    Constraints: {param_info.constraints}")
+        print(f"  Constraints: {param_info.constraints}")
 ```
 
 ### Extract All Transforms
@@ -314,7 +393,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-MIT License
+Dual License:
+- **AGPL-3.0** for open source use
+- **Commercial License** for proprietary/commercial applications
+
+For licensing questions, contact: vladimir@albumentations.ai
 
 ## Related Projects
 
