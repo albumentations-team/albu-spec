@@ -8,10 +8,9 @@ from __future__ import annotations
 
 import albumentations as A
 import pytest
+from conftest import get_init_params, get_init_schema_params
 
 from albu_spec import get_transform_metadata
-
-from .conftest import get_init_params, get_init_schema_params
 
 # Test multiple common transforms
 TEST_TRANSFORMS = [

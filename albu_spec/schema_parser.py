@@ -39,12 +39,12 @@ class SchemaParser:
         if hasattr(init_schema, "__pydantic_decorators__"):
             decorators = init_schema.__pydantic_decorators__
             if hasattr(decorators, "field_validators"):
-                for field_name, validators in decorators.field_validators.items():
+                for field_name, decorator in decorators.field_validators.items():
                     if field_name not in constraints_map:
                         constraints_map[field_name] = ConstraintInfo()
-                    for validator in validators:
-                        if hasattr(validator, "func"):
-                            constraints_map[field_name].validators.append(validator.func.__name__)
+                    # Decorator object has a 'func' attribute
+                    if hasattr(decorator, "func"):
+                        constraints_map[field_name].validators.append(decorator.func.__name__)
 
         return constraints_map
 
@@ -61,41 +61,38 @@ class SchemaParser:
         constraints = ConstraintInfo()
         has_constraints = False
 
-        # Extract standard Field constraints
-        if hasattr(field_info, "ge") and field_info.ge is not None:
-            constraints.ge = float(field_info.ge)
-            has_constraints = True
-
-        if hasattr(field_info, "le") and field_info.le is not None:
-            constraints.le = float(field_info.le)
-            has_constraints = True
-
-        if hasattr(field_info, "gt") and field_info.gt is not None:
-            constraints.gt = float(field_info.gt)
-            has_constraints = True
-
-        if hasattr(field_info, "lt") and field_info.lt is not None:
-            constraints.lt = float(field_info.lt)
-            has_constraints = True
-
-        if hasattr(field_info, "min_length") and field_info.min_length is not None:
-            constraints.min_length = field_info.min_length
-            has_constraints = True
-
-        if hasattr(field_info, "max_length") and field_info.max_length is not None:
-            constraints.max_length = field_info.max_length
-            has_constraints = True
-
-        if hasattr(field_info, "multiple_of") and field_info.multiple_of is not None:
-            constraints.multiple_of = float(field_info.multiple_of)
-            has_constraints = True
-
-        if hasattr(field_info, "pattern") and field_info.pattern is not None:
-            constraints.pattern = field_info.pattern
-            has_constraints = True
-
-        # Extract metadata from field_info.metadata (for Annotated types with validators)
+        # In Pydantic v2, constraints are stored in metadata list
         if hasattr(field_info, "metadata") and field_info.metadata:
+            for metadata_item in field_info.metadata:
+                # Check for constraint objects (Ge, Le, Gt, Lt, etc.)
+                metadata_type = type(metadata_item).__name__
+
+                if metadata_type == "Ge" and hasattr(metadata_item, "ge"):
+                    constraints.ge = float(metadata_item.ge)
+                    has_constraints = True
+                elif metadata_type == "Le" and hasattr(metadata_item, "le"):
+                    constraints.le = float(metadata_item.le)
+                    has_constraints = True
+                elif metadata_type == "Gt" and hasattr(metadata_item, "gt"):
+                    constraints.gt = float(metadata_item.gt)
+                    has_constraints = True
+                elif metadata_type == "Lt" and hasattr(metadata_item, "lt"):
+                    constraints.lt = float(metadata_item.lt)
+                    has_constraints = True
+                elif metadata_type == "MinLen" and hasattr(metadata_item, "min_length"):
+                    constraints.min_length = metadata_item.min_length
+                    has_constraints = True
+                elif metadata_type == "MaxLen" and hasattr(metadata_item, "max_length"):
+                    constraints.max_length = metadata_item.max_length
+                    has_constraints = True
+                elif metadata_type == "MultipleOf" and hasattr(metadata_item, "multiple_of"):
+                    constraints.multiple_of = float(metadata_item.multiple_of)
+                    has_constraints = True
+                elif metadata_type == "_PydanticGeneralMetadata" and hasattr(metadata_item, "pattern"):
+                    constraints.pattern = metadata_item.pattern
+                    has_constraints = True
+
+            # Also extract validator info from metadata
             validator_info = self._extract_validator_metadata(field_info.metadata)
             if validator_info:
                 constraints.validator_info.update(validator_info)

@@ -129,23 +129,26 @@ def assert_types_match(actual: str | list[str], expected: str | list[str], conte
 
 
 def get_init_params(transform_class: type) -> set[str]:
-    """Get parameter names from __init__ signature (excluding self, p, strict).
+    """Get parameter names from __init__ signature (excluding self).
 
     Args:
         transform_class: Transform class to inspect
 
     Returns:
-        Set of parameter names
+        Set of parameter names (including p and strict if present)
     """
     try:
         sig = inspect.signature(transform_class.__init__)
-        return {name for name in sig.parameters.keys() if name not in {"self", "p", "strict"}}
+        return {name for name in sig.parameters.keys() if name not in {"self"}}
     except (ValueError, TypeError):
         return set()
 
 
 def get_init_schema_params(transform_class: type) -> set[str]:
     """Get parameter names from InitSchema model_fields.
+
+    Note: Filters out 'strict' which is defined in BaseTransformInitSchema
+    but not actually accepted by transform __init__ methods (AlbumentationsX bug).
 
     Args:
         transform_class: Transform class to inspect
@@ -159,7 +162,8 @@ def get_init_schema_params(transform_class: type) -> set[str]:
     init_schema = transform_class.InitSchema
 
     if hasattr(init_schema, "model_fields"):
-        return set(init_schema.model_fields.keys())
+        # Filter out 'strict' - it's in BaseTransformInitSchema but not in __init__
+        return {name for name in init_schema.model_fields.keys() if name != "strict"}
 
     return set()
 

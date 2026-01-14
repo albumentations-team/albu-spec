@@ -101,8 +101,8 @@ class TransformMetadataExtractor:
             return parameters
 
         for param_name, param in init_signature.parameters.items():
-            # Skip self, p, and other common parameters
-            if param_name in {"self", "p", "strict"}:
+            # Skip self and strict (strict is in InitSchema but not actually in __init__)
+            if param_name in {"self", "strict"}:
                 continue
 
             # Get type hint

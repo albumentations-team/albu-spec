@@ -10,14 +10,13 @@ import inspect
 
 import albumentations as A
 import pytest
-
-from albu_spec import get_transform_metadata
-
-from .conftest import (
+from conftest import (
     get_init_params,
     get_init_schema_params,
     normalize_type_string,
 )
+
+from albu_spec import get_transform_metadata
 
 
 @pytest.mark.parametrize(
@@ -69,16 +68,18 @@ def test_init_schema_params_exist_in_init(transform_class):
     ],
 )
 def test_init_params_have_metadata(transform_class):
-    """All __init__ parameters (except self, p, strict) should have metadata extracted.
+    """All __init__ parameters (except self, strict) should have metadata extracted.
 
     If a parameter exists in __init__, our extractor should capture it.
+    Note: 'strict' is excluded because it's in InitSchema but not in __init__ (AlbumentationsX bug).
     """
     if transform_class is None:
         pytest.skip("Transform not available")
 
     metadata = get_transform_metadata(transform_class)
 
-    init_params = get_init_params(transform_class)
+    # Get init params but exclude strict since it's not actually in __init__
+    init_params = get_init_params(transform_class) - {"strict"}
     extracted_params = set(metadata.parameters.keys())
 
     missing = init_params - extracted_params
