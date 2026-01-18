@@ -38,9 +38,10 @@ class DocstringParser:
         """
         descriptions: dict[str, str] = {}
 
-        # Check if 'args' key exists in parsed docstring
-        if "args" in parsed_docstring and parsed_docstring["args"]:
-            for arg in parsed_docstring["args"]:
+        # Check if 'Args' key exists in parsed docstring (capitalized)
+        args_list = parsed_docstring.get("Args") or parsed_docstring.get("args")
+        if args_list:
+            for arg in args_list:
                 if isinstance(arg, dict) and "name" in arg and "description" in arg:
                     param_name = arg["name"]
                     param_description = arg["description"]
@@ -65,16 +66,21 @@ class DocstringParser:
 
         try:
             parsed = parse_google_docstring(transform_class.__doc__)
-            if "short_description" in parsed and parsed["short_description"]:
-                short_desc = parsed["short_description"]
-                return str(short_desc).strip() if short_desc else None
-            elif "long_description" in parsed and parsed["long_description"]:
-                # If no short description, use first line of long description
-                long_desc = parsed["long_description"]
-                if long_desc:
-                    long_desc_str = str(long_desc).strip()
-                    first_line = long_desc_str.split("\n")[0]
-                    return first_line.strip()
+            # Try capitalized keys first, then lowercase
+            description = parsed.get("Description") or parsed.get("short_description")
+            if description:
+                # Extract first paragraph (before blank line)
+                desc_str = str(description).strip()
+                # Split by double newline or find first paragraph
+                paragraphs = desc_str.split("\n\n")
+                return paragraphs[0].strip() if paragraphs else desc_str
+
+            long_desc = parsed.get("Long Description") or parsed.get("long_description")
+            if long_desc:
+                # Use first paragraph of long description
+                long_desc_str = str(long_desc).strip()
+                paragraphs = long_desc_str.split("\n\n")
+                return paragraphs[0].strip() if paragraphs else long_desc_str
         except Exception:
             pass
 

@@ -70,35 +70,28 @@ Has InitSchema: True
       "name": "scale",
       "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]]",
       "default": [1.0, 1.0],
-      "description": null,
-      "constraints": null
-    },
-    "translate_percent": {
-      "name": "translate_percent",
-      "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]] | None",
-      "default": null,
-      "description": null,
+      "description": "Scaling factor to use, where ``1.0`` denotes \"no change\" and ``0.5`` is zoomed out to ``50`` percent of the original size...",
       "constraints": null
     },
     "rotate": {
       "name": "rotate",
       "type_hint": "tuple[float, float] | float",
       "default": 0.0,
-      "description": null,
+      "description": "Rotation in degrees (**NOT** radians), i.e. expected value range is around ``[-360, 360]``...",
       "constraints": null
     },
     "interpolation": {
       "name": "interpolation",
       "type_hint": [0, 1, 2, 3, 4],
       "default": 1,
-      "description": null,
+      "description": "OpenCV interpolation flag.",
       "constraints": null
     },
     "p": {
       "name": "p",
       "type_hint": "float",
       "default": 0.5,
-      "description": null,
+      "description": "probability of applying the transform. Default: 0.5.",
       "constraints": {
         "ge": 0.0,
         "le": 1.0,

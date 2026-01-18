@@ -31,7 +31,7 @@ def expected_horizontalflip_metadata() -> dict:
                 "name": "p",
                 "type_hint": "float",
                 "default": 0.5,
-                "description": None,
+                "description": "probability of applying the transform. Default: 0.5.",
                 "constraints": {
                     "ge": 0.0,
                     "le": 1.0,
@@ -66,28 +66,28 @@ def expected_colorjitter_metadata() -> dict:
                 "name": "brightness",
                 "type_hint": "tuple[float, float] | float",
                 "default": (0.8, 1.2),
-                "description": None,
+                "description_prefix": "How much to jitter brightness.",
                 "constraints": None,
             },
             "contrast": {
                 "name": "contrast",
                 "type_hint": "tuple[float, float] | float",
                 "default": (0.8, 1.2),
-                "description": None,
+                "description_prefix": "How much to jitter contrast.",
                 "constraints": None,
             },
             "saturation": {
                 "name": "saturation",
                 "type_hint": "tuple[float, float] | float",
                 "default": (0.8, 1.2),
-                "description": None,
+                "description_prefix": "How much to jitter saturation.",
                 "constraints": None,
             },
             "hue": {
                 "name": "hue",
                 "type_hint": "tuple[float, float] | float",
                 "default": (-0.5, 0.5),
-                "description": None,
+                "description_prefix": "How much to jitter hue.",
                 "constraints": None,
             },
             "p": {
@@ -129,105 +129,105 @@ def expected_affine_metadata() -> dict:
                 "name": "scale",
                 "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]]",
                 "default": (1.0, 1.0),
-                "description": None,
+                "description_prefix": 'Scaling factor to use, where ``1.0`` denotes "no change"',
                 "constraints": None,
             },
             "translate_percent": {
                 "name": "translate_percent",
                 "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]] | None",
                 "default": None,
-                "description": None,
+                "description_prefix": "Translation as a fraction of the image height/width",
                 "constraints": None,
             },
             "translate_px": {
                 "name": "translate_px",
                 "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]] | None",
                 "default": None,
-                "description": None,
+                "description_prefix": "Translation in pixels.",
                 "constraints": None,
             },
             "rotate": {
                 "name": "rotate",
                 "type_hint": "tuple[float, float] | float",
                 "default": 0.0,
-                "description": None,
+                "description_prefix": "Rotation in degrees (**NOT** radians)",
                 "constraints": None,
             },
             "shear": {
                 "name": "shear",
                 "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]]",
                 "default": (0.0, 0.0),
-                "description": None,
+                "description_prefix": "Shear in degrees (**NOT** radians)",
                 "constraints": None,
             },
             "interpolation": {
                 "name": "interpolation",
                 "type_hint": [0, 1, 2, 3, 4],
                 "default": 1,
-                "description": None,
+                "description": "OpenCV interpolation flag.",
                 "constraints": None,
             },
             "mask_interpolation": {
                 "name": "mask_interpolation",
                 "type_hint": [0, 1, 2, 3, 4],
                 "default": 0,
-                "description": None,
+                "description": "OpenCV interpolation flag.",
                 "constraints": None,
             },
             "fit_output": {
                 "name": "fit_output",
                 "type_hint": "bool",
                 "default": False,
-                "description": None,
+                "description_prefix": "If True, the image plane size and position will be adjusted",
                 "constraints": None,
             },
             "keep_ratio": {
                 "name": "keep_ratio",
                 "type_hint": "bool",
                 "default": False,
-                "description": None,
+                "description_prefix": "When True, the original aspect ratio will be kept",
                 "constraints": None,
             },
             "rotate_method": {
                 "name": "rotate_method",
                 "type_hint": ["largest_box", "ellipse"],
                 "default": "largest_box",
-                "description": None,
+                "description_prefix": "rotation method used for the bounding boxes.",
                 "constraints": None,
             },
             "balanced_scale": {
                 "name": "balanced_scale",
                 "type_hint": "bool",
                 "default": False,
-                "description": None,
+                "description_prefix": "When True, scaling factors are chosen to be either entirely below or above 1",
                 "constraints": None,
             },
             "border_mode": {
                 "name": "border_mode",
                 "type_hint": [0, 1, 2, 3, 4],
                 "default": 0,
-                "description": None,
+                "description": "OpenCV border flag.",
                 "constraints": None,
             },
             "fill": {
                 "name": "fill",
                 "type_hint": "tuple[float, ...] | float",
                 "default": 0,
-                "description": None,
+                "description_prefix": "The constant value to use when filling in newly created pixels.",
                 "constraints": None,
             },
             "fill_mask": {
                 "name": "fill_mask",
                 "type_hint": "tuple[float, ...] | float",
                 "default": 0,
-                "description": None,
+                "description": "Same as fill but only for masks.",
                 "constraints": None,
             },
             "p": {
                 "name": "p",
                 "type_hint": "float",
                 "default": 0.5,
-                "description": None,
+                "description": "probability of applying the transform. Default: 0.5.",
                 "constraints": {
                     "ge": 0.0,
                     "le": 1.0,
@@ -275,7 +275,24 @@ def test_colorjitter_metadata_snapshot(expected_colorjitter_metadata: dict) -> N
     assert actual["module"] == expected_colorjitter_metadata["module"]
     assert actual["transform_type"] == expected_colorjitter_metadata["transform_type"]
     assert actual["targets"] == expected_colorjitter_metadata["targets"]
-    assert actual["parameters"] == expected_colorjitter_metadata["parameters"]
+
+    # Compare parameters, checking description prefixes only
+    for param_name, expected_param in expected_colorjitter_metadata["parameters"].items():
+        actual_param = actual["parameters"][param_name]
+        assert actual_param["name"] == expected_param["name"]
+        assert actual_param["type_hint"] == expected_param["type_hint"]
+        assert actual_param["default"] == expected_param["default"]
+        assert actual_param["constraints"] == expected_param["constraints"]
+
+        # Check description prefix if provided
+        if "description_prefix" in expected_param:
+            actual_desc = actual_param.get("description") or ""
+            assert actual_desc.startswith(expected_param["description_prefix"]), (
+                f"Description for {param_name} should start with {expected_param['description_prefix']!r}"
+            )
+        elif expected_param["description"] is not None:
+            assert actual_param["description"] == expected_param["description"]
+
     assert actual["docstring_short"] == expected_colorjitter_metadata["docstring_short"]
     assert actual["has_init_schema"] == expected_colorjitter_metadata["has_init_schema"]
     assert actual["docstring"] is not None
@@ -291,7 +308,24 @@ def test_affine_metadata_snapshot(expected_affine_metadata: dict) -> None:
     assert actual["module"] == expected_affine_metadata["module"]
     assert actual["transform_type"] == expected_affine_metadata["transform_type"]
     assert actual["targets"] == expected_affine_metadata["targets"]
-    assert actual["parameters"] == expected_affine_metadata["parameters"]
+
+    # Compare parameters, checking description prefixes only
+    for param_name, expected_param in expected_affine_metadata["parameters"].items():
+        actual_param = actual["parameters"][param_name]
+        assert actual_param["name"] == expected_param["name"]
+        assert actual_param["type_hint"] == expected_param["type_hint"]
+        assert actual_param["default"] == expected_param["default"]
+        assert actual_param["constraints"] == expected_param["constraints"]
+
+        # Check description prefix if provided
+        if "description_prefix" in expected_param:
+            actual_desc = actual_param.get("description") or ""
+            assert actual_desc.startswith(expected_param["description_prefix"]), (
+                f"Description for {param_name} should start with {expected_param['description_prefix']!r}"
+            )
+        elif expected_param["description"] is not None:
+            assert actual_param["description"] == expected_param["description"]
+
     assert actual["docstring_short"] == expected_affine_metadata["docstring_short"]
     assert actual["has_init_schema"] == expected_affine_metadata["has_init_schema"]
     assert actual["docstring"] is not None

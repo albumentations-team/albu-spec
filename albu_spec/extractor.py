@@ -174,9 +174,34 @@ class TransformMetadataExtractor:
         if type_annotation in (int, float, bool, str):
             return str(type_annotation.__name__)
 
-        # Handle string annotations
+        # Handle string annotations - evaluate them first
         if isinstance(type_annotation, str):
-            return str(type_annotation)
+            try:
+                # Try to evaluate the string annotation
+                import typing
+
+                import cv2  # For cv2.INTER_* constants
+
+                # Create namespace with common imports
+                namespace = {
+                    "Literal": typing.Literal,
+                    "Union": typing.Union,
+                    "Optional": typing.Optional,
+                    "tuple": tuple,
+                    "dict": dict,
+                    "list": list,
+                    "int": int,
+                    "float": float,
+                    "str": str,
+                    "bool": bool,
+                    "cv2": cv2,
+                }
+                evaluated = eval(type_annotation, namespace)
+                # Recursively format the evaluated type
+                return self._format_type(evaluated)
+            except Exception:
+                # If evaluation fails, return string as-is
+                return str(type_annotation)
 
         # Get origin and args
         origin = get_origin(type_annotation)
