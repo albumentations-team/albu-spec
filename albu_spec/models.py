@@ -21,6 +21,7 @@ class ConstraintInfo(BaseModel):
         pattern: Regex pattern for strings
         validators: List of validator function names
         validator_info: Additional information from validators
+
     """
 
     ge: float | None = None
@@ -47,6 +48,7 @@ class ParameterMetadata(BaseModel):
         default: Default value
         description: Description from docstring
         constraints: Pydantic Field constraints and validators
+
     """
 
     name: str
@@ -68,6 +70,7 @@ class TransformMetadata(BaseModel):
         docstring: Complete docstring text
         docstring_short: Short description from docstring
         has_init_schema: Whether the transform has an InitSchema
+
     """
 
     name: str
@@ -89,6 +92,7 @@ class TransformCollection(BaseModel):
         transforms_3d: 3D transforms
         unknown: Transforms with unknown type
         total_count: Total number of transforms
+
     """
 
     image_only: list[TransformMetadata] = Field(default_factory=list)

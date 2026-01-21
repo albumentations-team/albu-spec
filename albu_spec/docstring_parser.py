@@ -16,6 +16,7 @@ class DocstringParser:
 
         Returns:
             Dictionary mapping parameter names to their descriptions
+
         """
         if not transform_class.__doc__:
             return {}
@@ -23,7 +24,7 @@ class DocstringParser:
         try:
             parsed = parse_google_docstring(transform_class.__doc__)
             return self._extract_parameter_descriptions(parsed)
-        except Exception:
+        except (ValueError, KeyError, AttributeError):
             # If parsing fails, return empty dict
             return {}
 
@@ -35,6 +36,7 @@ class DocstringParser:
 
         Returns:
             Dictionary mapping parameter names to descriptions
+
         """
         descriptions: dict[str, str] = {}
 
@@ -60,6 +62,7 @@ class DocstringParser:
 
         Returns:
             Short description or None if not found
+
         """
         if not transform_class.__doc__:
             return None
@@ -81,14 +84,15 @@ class DocstringParser:
                 long_desc_str = str(long_desc).strip()
                 paragraphs = long_desc_str.split("\n\n")
                 return paragraphs[0].strip() if paragraphs else long_desc_str
-        except Exception:
+        except (ValueError, KeyError, AttributeError):
+            # Parsing failed, use fallback
             pass
 
         # Fallback: get first non-empty line from docstring
         if transform_class.__doc__:
-            for line in transform_class.__doc__.split("\n"):
-                line = line.strip()
-                if line:
-                    return line
+            for doc_line in transform_class.__doc__.split("\n"):
+                stripped_line = doc_line.strip()
+                if stripped_line:
+                    return stripped_line
 
         return None

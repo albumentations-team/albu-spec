@@ -10,13 +10,9 @@ import inspect
 
 import albumentations as A
 import pytest
-from conftest import (
-    get_init_params,
-    get_init_schema_params,
-    normalize_type_string,
-)
 
 from albu_spec import get_transform_metadata
+from tests.test_utils import get_init_params, get_init_schema_params, normalize_type_string
 
 
 @pytest.mark.parametrize(
@@ -27,7 +23,8 @@ from albu_spec import get_transform_metadata
         pytest.param(
             A.ColorJitter if hasattr(A, "ColorJitter") else None,
             marks=pytest.mark.skipif(
-                not hasattr(A, "ColorJitter"), reason="ColorJitter not available in AlbumentationsX"
+                not hasattr(A, "ColorJitter"),
+                reason="ColorJitter not available in AlbumentationsX",
             ),
         ),
     ],
@@ -62,7 +59,8 @@ def test_init_schema_params_exist_in_init(transform_class):
         pytest.param(
             A.ColorJitter if hasattr(A, "ColorJitter") else None,
             marks=pytest.mark.skipif(
-                not hasattr(A, "ColorJitter"), reason="ColorJitter not available in AlbumentationsX"
+                not hasattr(A, "ColorJitter"),
+                reason="ColorJitter not available in AlbumentationsX",
             ),
         ),
     ],
@@ -95,7 +93,8 @@ def test_init_params_have_metadata(transform_class):
         pytest.param(
             A.ColorJitter if hasattr(A, "ColorJitter") else None,
             marks=pytest.mark.skipif(
-                not hasattr(A, "ColorJitter"), reason="ColorJitter not available in AlbumentationsX"
+                not hasattr(A, "ColorJitter"),
+                reason="ColorJitter not available in AlbumentationsX",
             ),
         ),
     ],
@@ -147,7 +146,7 @@ def test_type_hints_consistency(transform_class):
                             "param": param_name,
                             "schema_type": schema_type_str,
                             "init_type": init_type_str,
-                        }
+                        },
                     )
 
     if mismatches:
@@ -167,7 +166,8 @@ def test_type_hints_consistency(transform_class):
         pytest.param(
             A.ColorJitter if hasattr(A, "ColorJitter") else None,
             marks=pytest.mark.skipif(
-                not hasattr(A, "ColorJitter"), reason="ColorJitter not available in AlbumentationsX"
+                not hasattr(A, "ColorJitter"),
+                reason="ColorJitter not available in AlbumentationsX",
             ),
         ),
     ],

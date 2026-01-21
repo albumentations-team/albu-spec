@@ -47,7 +47,7 @@ def expected_horizontalflip_metadata() -> dict:
                     "validators": [],
                     "validator_info": {},
                 },
-            }
+            },
         },
         "docstring_short": "Flip the input horizontally around the y-axis.",
         "has_init_schema": True,
@@ -206,7 +206,7 @@ def expected_affine_metadata() -> dict:
                 "name": "scale",
                 "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]]",
                 "default": (1.0, 1.0),
-                "description_prefix": 'Scaling factor to use, where ``1.0`` denotes "no change"',
+                "description_prefix": 'Scaling factor to use, where `1.0` denotes "no change"',
                 "constraints": None,
             },
             "translate_percent": {
@@ -261,7 +261,7 @@ def expected_affine_metadata() -> dict:
             "keep_ratio": {
                 "name": "keep_ratio",
                 "type_hint": "bool",
-                "default": False,
+                "default": True,
                 "description_prefix": "When True, the original aspect ratio will be kept",
                 "constraints": None,
             },

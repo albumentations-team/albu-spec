@@ -219,7 +219,6 @@ def test_extract_annotated_constraints(parser):
 
 def test_extract_annotated_non_annotated_type(parser):
     """Test extract_annotated_constraints with non-Annotated type."""
-
     result = parser.extract_annotated_constraints(int)
 
     assert result is None
@@ -247,7 +246,6 @@ def test_validator_metadata_extraction(parser):
 
 def test_constraint_info_model():
     """Test ConstraintInfo model can be created and serialized."""
-
     info = ConstraintInfo(
         ge=0.0,
         le=1.0,
@@ -272,7 +270,6 @@ def test_constraint_info_model():
 
 def test_constraint_info_defaults():
     """Test ConstraintInfo has correct defaults (all None/empty)."""
-
     info = ConstraintInfo()
 
     assert info.ge is None

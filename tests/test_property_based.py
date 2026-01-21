@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import albumentations as A
 import pytest
-from conftest import get_init_params, get_init_schema_params
 
 from albu_spec import get_transform_metadata
+from tests.test_utils import get_init_params, get_init_schema_params
 
 # Test multiple common transforms
 TEST_TRANSFORMS = [
@@ -59,7 +59,7 @@ def test_property_type_hints_are_non_empty(transform_class):
             )
         else:
             pytest.fail(
-                f"{transform_class.__name__}.{param_name}: type_hint must be str or list, got {type(type_hint)}"
+                f"{transform_class.__name__}.{param_name}: type_hint must be str or list, got {type(type_hint)}",
             )
 
 
@@ -95,14 +95,14 @@ def test_property_constraint_ranges_are_valid(transform_class):
         if c.ge is not None and c.gt is not None:
             pytest.xfail(
                 f"albumentationsx_bug: {transform_class.__name__}.{param_name} "
-                f"has both ge={c.ge} and gt={c.gt} (should be mutually exclusive)"
+                f"has both ge={c.ge} and gt={c.gt} (should be mutually exclusive)",
             )
 
         # Check le and lt are not both set
         if c.le is not None and c.lt is not None:
             pytest.xfail(
                 f"albumentationsx_bug: {transform_class.__name__}.{param_name} "
-                f"has both le={c.le} and lt={c.lt} (should be mutually exclusive)"
+                f"has both le={c.le} and lt={c.lt} (should be mutually exclusive)",
             )
 
 
@@ -197,26 +197,26 @@ def test_property_default_values_satisfy_constraints(transform_class):
         if c.ge is not None:
             if default < c.ge:
                 pytest.xfail(
-                    f"albumentationsx_bug: {transform_class.__name__}.{param_name} default={default} violates ge={c.ge}"
+                    f"albumentationsx_bug: {transform_class.__name__}.{param_name} default={default} violates ge={c.ge}",
                 )
 
         # Check le constraint
         if c.le is not None:
             if default > c.le:
                 pytest.xfail(
-                    f"albumentationsx_bug: {transform_class.__name__}.{param_name} default={default} violates le={c.le}"
+                    f"albumentationsx_bug: {transform_class.__name__}.{param_name} default={default} violates le={c.le}",
                 )
 
         # Check gt constraint
         if c.gt is not None:
             if default <= c.gt:
                 pytest.xfail(
-                    f"albumentationsx_bug: {transform_class.__name__}.{param_name} default={default} violates gt={c.gt}"
+                    f"albumentationsx_bug: {transform_class.__name__}.{param_name} default={default} violates gt={c.gt}",
                 )
 
         # Check lt constraint
         if c.lt is not None:
             if default >= c.lt:
                 pytest.xfail(
-                    f"albumentationsx_bug: {transform_class.__name__}.{param_name} default={default} violates lt={c.lt}"
+                    f"albumentationsx_bug: {transform_class.__name__}.{param_name} default={default} violates lt={c.lt}",
                 )

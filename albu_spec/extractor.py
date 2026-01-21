@@ -1,7 +1,11 @@
 """Main extraction orchestrator for transform metadata."""
 
+from __future__ import annotations
+
 import inspect
-from typing import Any, Literal, get_args, get_origin
+import typing
+from collections.abc import Callable
+from typing import Annotated, Any, Literal, get_args, get_origin
 
 from albu_spec.docstring_parser import DocstringParser
 from albu_spec.models import ConstraintInfo, ParameterMetadata, TransformCollection, TransformMetadata
@@ -25,6 +29,7 @@ class TransformMetadataExtractor:
     """Extract comprehensive metadata from Albumentations transforms."""
 
     def __init__(self) -> None:
+        """Initialize the metadata extractor."""
         self.schema_parser = SchemaParser()
         self.docstring_parser = DocstringParser()
 
@@ -36,6 +41,7 @@ class TransformMetadataExtractor:
 
         Returns:
             TransformMetadata object containing all extracted information
+
         """
         # Get basic information
         name = transform_class.__name__
@@ -90,6 +96,7 @@ class TransformMetadataExtractor:
 
         Returns:
             Dictionary mapping parameter names to their metadata
+
         """
         parameters: dict[str, ParameterMetadata] = {}
 
@@ -133,7 +140,7 @@ class TransformMetadataExtractor:
 
         return parameters
 
-    def _format_type_hint(self, annotation: Any, param_name: str, transform_class: type) -> str | list[str]:
+    def _format_type_hint(self, annotation: object, param_name: str, transform_class: type) -> str | list[Any]:
         """Format type annotation as human-readable string.
 
         Args:
@@ -143,6 +150,7 @@ class TransformMetadataExtractor:
 
         Returns:
             Formatted type string or list of strings for Literal types
+
         """
         if annotation is inspect.Parameter.empty:
             return "Any"
@@ -157,7 +165,7 @@ class TransformMetadataExtractor:
 
         return self._format_type(annotation)
 
-    def _format_type(self, type_annotation: Any) -> str | list[str]:
+    def _format_type(self, type_annotation: object) -> str | list[Any]:  # noqa: C901, PLR0911, PLR0912
         """Format a type annotation into a readable string.
 
         Args:
@@ -165,6 +173,7 @@ class TransformMetadataExtractor:
 
         Returns:
             Formatted type string or list for Literal types
+
         """
         # Handle None
         if type_annotation is None or type_annotation is type(None):
@@ -178,9 +187,7 @@ class TransformMetadataExtractor:
         if isinstance(type_annotation, str):
             try:
                 # Try to evaluate the string annotation
-                import typing
-
-                import cv2  # For cv2.INTER_* constants
+                import cv2  # noqa: PLC0415
 
                 # Create namespace with common imports
                 namespace = {
@@ -196,10 +203,10 @@ class TransformMetadataExtractor:
                     "bool": bool,
                     "cv2": cv2,
                 }
-                evaluated = eval(type_annotation, namespace)
+                evaluated = eval(type_annotation, namespace)  # noqa: S307
                 # Recursively format the evaluated type
                 return self._format_type(evaluated)
-            except Exception:
+            except (ValueError, NameError, SyntaxError, AttributeError):
                 # If evaluation fails, return string as-is
                 return str(type_annotation)
 
@@ -218,19 +225,19 @@ class TransformMetadataExtractor:
             flat_types: list[str] = []
             for t in formatted_types:
                 if isinstance(t, list):
-                    flat_types.extend(t)
+                    flat_types.extend(str(item) for item in t)
                 else:
                     flat_types.append(str(t))
             return " | ".join(flat_types)
 
         # Handle tuple
+        tuple_ellipsis_length = 2
         if origin is tuple:
             if args:
-                if len(args) == 2 and args[1] is ...:
+                if len(args) == tuple_ellipsis_length and args[1] is ...:
                     return f"tuple[{self._format_type(args[0])}, ...]"
-                else:
-                    formatted_args = [str(self._format_type(arg)) for arg in args]
-                    return f"tuple[{', '.join(formatted_args)}]"
+                formatted_args = [str(self._format_type(arg)) for arg in args]
+                return f"tuple[{', '.join(formatted_args)}]"
             return "tuple"
 
         # Handle list
@@ -240,26 +247,24 @@ class TransformMetadataExtractor:
             return "list"
 
         # Handle dict
+        min_dict_args = 2
         if origin is dict:
-            if len(args) >= 2:
+            if len(args) >= min_dict_args:
                 key_type = self._format_type(args[0])
                 value_type = self._format_type(args[1])
                 return f"dict[{key_type}, {value_type}]"
             return "dict"
 
         # Handle Annotated
-        from typing import Annotated
-
         if origin is Annotated:
             if args:
                 return self._format_type(args[0])
             return "Annotated"
 
         # Handle Callable
-        from collections.abc import Callable
-
+        min_callable_args = 2
         if origin is Callable or (origin and "Callable" in str(origin)):
-            if args and len(args) >= 2:
+            if args and len(args) >= min_callable_args:
                 return f"Callable[..., {self._format_type(args[-1])}]"
             return "Callable"
 
@@ -269,7 +274,7 @@ class TransformMetadataExtractor:
 
         return str(type_annotation)
 
-    def _format_default_value(self, value: Any) -> Any:
+    def _format_default_value(self, value: object) -> Any:  # noqa: ANN401
         """Format default value for display.
 
         Args:
@@ -277,6 +282,7 @@ class TransformMetadataExtractor:
 
         Returns:
             Formatted default value
+
         """
         if callable(value) and not isinstance(value, type):
             return f"<function {value.__name__}>"
@@ -291,10 +297,11 @@ class TransformMetadataExtractor:
 
         Returns:
             Transform type string
+
         """
         try:
             # Try to import albumentations classes
-            import albumentations as A
+            import albumentations as A  # noqa: PLC0415
 
             if issubclass(transform_class, A.Transform3D):
                 return "transforms_3d"
@@ -315,19 +322,17 @@ class TransformMetadataExtractor:
 
         Returns:
             List of target names
+
         """
         targets: list[str] = []
 
         if hasattr(transform_class, "_targets"):
-            targets_attr = transform_class._targets
+            targets_attr = transform_class._targets  # noqa: SLF001
 
             # Handle various types of _targets
-            if isinstance(targets_attr, (list, tuple)):
-                for target in targets_attr:
-                    target_str = getattr(target, "value", target)
-                    if isinstance(target_str, str):
-                        targets.append(target_str.lower())
-            elif hasattr(targets_attr, "__iter__") and not isinstance(targets_attr, str):
+            if isinstance(targets_attr, (list, tuple)) or (
+                hasattr(targets_attr, "__iter__") and not isinstance(targets_attr, str)
+            ):
                 for target in targets_attr:
                     target_str = getattr(target, "value", target)
                     if isinstance(target_str, str):
@@ -335,18 +340,18 @@ class TransformMetadataExtractor:
 
         return targets
 
-    def get_all_transforms_metadata(self) -> TransformCollection:
+    def get_all_transforms_metadata(self) -> TransformCollection:  # noqa: C901
         """Extract metadata for all Albumentations transforms.
 
         Returns:
             TransformCollection with all transforms grouped by type
+
         """
         try:
-            import albumentations as A
-        except ImportError:
-            raise ImportError(
-                "albumentations package is not installed. Please install it to extract transform metadata."
-            )
+            import albumentations as A  # noqa: PLC0415
+        except ImportError as err:
+            msg = "albumentations package is not installed. Please install it to extract transform metadata."
+            raise ImportError(msg) from err
 
         collection = TransformCollection()
 
@@ -378,7 +383,7 @@ class TransformMetadataExtractor:
                     collection.transforms_3d.append(metadata)
                 else:
                     collection.unknown.append(metadata)
-            except Exception:
+            except (ValueError, TypeError, AttributeError):
                 # Skip transforms that fail to extract
                 continue
 
@@ -403,6 +408,7 @@ def get_transform_metadata(transform_class: type) -> TransformMetadata:
         'Blur'
         >>> print(metadata.parameters['blur_limit'].type_hint)
         'tuple[int, int] | int'
+
     """
     extractor = TransformMetadataExtractor()
     return extractor.get_transform_metadata(transform_class)
@@ -420,6 +426,7 @@ def get_all_transforms_metadata() -> TransformCollection:
         >>> print(f"Found {collection.total_count} transforms")
         >>> print(f"Image-only: {len(collection.image_only)}")
         >>> print(f"Dual: {len(collection.dual)}")
+
     """
     extractor = TransformMetadataExtractor()
     return extractor.get_all_transforms_metadata()

@@ -49,7 +49,7 @@ Repository = "https://github.com/albumentations-team/albu-spec"
 Documentation = "https://github.com/albumentations-team/albu-spec#readme"
 
 [tool.setuptools.packages.find]
-where = ["albu_spec"]
+where = ["."]
 
 [tool.setuptools.package-data]
 albu_spec = ["py.typed"]
@@ -59,8 +59,28 @@ line-length = 120
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["N812"]
+select = ["ALL"]
+ignore = ["N812", "D401", "D104"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",      # assert allowed in tests
+    "ANN201",    # return type annotations optional in tests
+    "ANN001",    # argument type annotations optional in tests
+    "PLR2004",   # magic values allowed in tests
+    "ANN204",    # special method annotations optional
+    "SLF001",    # private member access allowed in tests
+    "E501",      # line length can exceed in tests
+    "C901",      # complexity allowed in tests
+    "PLR0911",   # many returns allowed in tests
+    "PLR0912",   # many branches allowed in tests
+    "TC003",     # type checking imports optional in tests
+    "SIM102",    # nested ifs allowed in tests
+    "SIM118",    # .keys() usage allowed in tests
+    "PLC0415",   # imports anywhere allowed in tests
+    "PT018",     # composite assertions allowed in tests
+    "PT006",     # parametrize args can be strings
+]
 
 [tool.mypy]
 python_version = "3.10"

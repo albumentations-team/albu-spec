@@ -1,6 +1,7 @@
 """Parser for extracting constraints from Pydantic InitSchema classes."""
 
 import inspect
+import re
 from typing import Annotated, Any, get_args, get_origin
 
 from pydantic.fields import FieldInfo
@@ -19,6 +20,7 @@ class SchemaParser:
 
         Returns:
             Dictionary mapping parameter names to their constraints
+
         """
         constraints_map: dict[str, ConstraintInfo] = {}
 
@@ -48,15 +50,16 @@ class SchemaParser:
 
         return constraints_map
 
-    def _extract_field_constraints(self, field_name: str, field_info: FieldInfo) -> ConstraintInfo | None:
+    def _extract_field_constraints(self, _field_name: str, field_info: FieldInfo) -> ConstraintInfo | None:  # noqa: C901
         """Extract constraints from a Pydantic FieldInfo object.
 
         Args:
-            field_name: Name of the field
+            _field_name: Name of the field (unused, kept for API compatibility)
             field_info: Pydantic FieldInfo object
 
         Returns:
             ConstraintInfo object with extracted constraints, or None if no constraints
+
         """
         constraints = ConstraintInfo()
         has_constraints = False
@@ -108,6 +111,7 @@ class SchemaParser:
 
         Returns:
             Dictionary of validator information
+
         """
         validator_info: dict[str, Any] = {}
 
@@ -129,7 +133,7 @@ class SchemaParser:
 
         return validator_info
 
-    def _analyze_validator_function(self, func: Any) -> dict[str, Any]:
+    def _analyze_validator_function(self, func: object) -> dict[str, Any]:
         """Analyze a validator function to extract constraint information.
 
         Args:
@@ -137,20 +141,19 @@ class SchemaParser:
 
         Returns:
             Dictionary with validator analysis
+
         """
         info: dict[str, Any] = {}
 
         # Try to get the function source to extract bounds
         try:
-            source = inspect.getsource(func)
+            source = inspect.getsource(func)  # type: ignore[arg-type]
             info["source_available"] = True
 
             # Look for common patterns like check_range_bounds(min, max)
             if "check_range_bounds" in source:
                 # Try to extract the bounds from the source
                 info["type"] = "range_bounds"
-                # This is a heuristic - you might need to make it more robust
-                import re
 
                 bounds_match = re.search(r"check_range_bounds\s*\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)", source)
                 if bounds_match:
@@ -173,7 +176,7 @@ class SchemaParser:
 
         return info
 
-    def extract_annotated_constraints(self, type_annotation: Any) -> ConstraintInfo | None:
+    def extract_annotated_constraints(self, type_annotation: object) -> ConstraintInfo | None:
         """Extract constraints from Annotated type hints.
 
         Args:
@@ -181,6 +184,7 @@ class SchemaParser:
 
         Returns:
             ConstraintInfo if constraints found, None otherwise
+
         """
         origin = get_origin(type_annotation)
 
@@ -198,7 +202,7 @@ class SchemaParser:
                     has_constraints = True
 
                     # Try to extract min/max from validator info
-                    for validator_name, validator_data in validator_info.items():
+                    for validator_data in validator_info.values():
                         if isinstance(validator_data, dict):
                             if "min_value" in validator_data:
                                 constraints.min_value = validator_data["min_value"]
