@@ -1,0 +1,279 @@
+"""Type annotation formatters using strategy pattern."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Annotated, Any, Literal, Protocol, get_args, get_origin
+
+import cv2
+
+
+class TypeHandler(Protocol):
+    """Protocol for type annotation handlers."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if this handler can format the given type annotation.
+
+        Args:
+            type_annotation: Type annotation to check
+
+        Returns:
+            True if this handler can format the type
+
+        """
+        ...
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
+        """Format the type annotation.
+
+        Args:
+            type_annotation: Type annotation to format
+            formatter: TypeFormatter for recursive formatting
+
+        Returns:
+            Formatted type string or list for Literal types
+
+        """
+        ...
+
+
+class NoneTypeHandler:
+    """Handle None type annotations."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if annotation is None type."""
+        return type_annotation is None or type_annotation is type(None)
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:  # noqa: ARG002
+        """Format None type."""
+        return "None"
+
+
+class BasicTypeHandler:
+    """Handle basic Python types (int, float, bool, str)."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if annotation is a basic type."""
+        return isinstance(type_annotation, type) and type_annotation in (int, float, bool, str)
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:  # noqa: ARG002
+        """Format basic type."""
+        if isinstance(type_annotation, type):
+            return type_annotation.__name__
+        return "Any"
+
+
+class StringAnnotationHandler:
+    """Handle string type annotations that need evaluation."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if annotation is a string."""
+        return isinstance(type_annotation, str)
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
+        """Format string annotation by evaluating it."""
+        if not isinstance(type_annotation, str):
+            return str(type_annotation)
+
+        try:
+            # Create namespace with common imports
+            namespace: dict[str, Any] = {
+                "Literal": Literal,
+                "Union": type(int | str),
+                "Optional": type(int | None),
+                "tuple": tuple,
+                "dict": dict,
+                "list": list,
+                "int": int,
+                "float": float,
+                "str": str,
+                "bool": bool,
+                "cv2": cv2,
+            }
+            # eval is used here for forward references in type annotations
+            # The namespace is restricted to safe type constructs only
+            # This is necessary because typing.get_type_hints() doesn't work
+            # reliably with dynamic classes and Pydantic schemas
+            evaluated = eval(type_annotation, namespace)
+            # Recursively format the evaluated type
+            return formatter.format(evaluated)
+        except (ValueError, NameError, SyntaxError, AttributeError):
+            # If evaluation fails, return string as-is
+            return str(type_annotation)
+
+
+class LiteralTypeHandler:
+    """Handle Literal type annotations."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if annotation is Literal."""
+        return get_origin(type_annotation) is Literal
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:  # noqa: ARG002
+        """Format Literal type - preserve original types."""
+        args = get_args(type_annotation)
+        return list(args)
+
+
+class UnionTypeHandler:
+    """Handle Union type annotations (including | syntax)."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if annotation is Union."""
+        origin = get_origin(type_annotation)
+        if origin is type(int | str):
+            return True
+        return bool(origin and "Union" in str(origin))
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
+        """Format Union type."""
+        args = get_args(type_annotation)
+        formatted_types = [formatter.format(arg) for arg in args]
+        # Flatten any nested lists
+        flat_types: list[str] = []
+        for t in formatted_types:
+            if isinstance(t, list):
+                flat_types.extend(str(item) for item in t)
+            else:
+                flat_types.append(str(t))
+        return " | ".join(flat_types)
+
+
+class TupleTypeHandler:
+    """Handle tuple type annotations."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if annotation is tuple."""
+        return get_origin(type_annotation) is tuple
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
+        """Format tuple type."""
+        args = get_args(type_annotation)
+        if not args:
+            return "tuple"
+
+        tuple_ellipsis_length = 2
+        if len(args) == tuple_ellipsis_length and args[1] is ...:
+            return f"tuple[{formatter.format(args[0])}, ...]"
+
+        formatted_args = [str(formatter.format(arg)) for arg in args]
+        return f"tuple[{', '.join(formatted_args)}]"
+
+
+class ListTypeHandler:
+    """Handle list type annotations."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if annotation is list."""
+        return get_origin(type_annotation) is list
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
+        """Format list type."""
+        args = get_args(type_annotation)
+        if args:
+            return f"list[{formatter.format(args[0])}]"
+        return "list"
+
+
+class DictTypeHandler:
+    """Handle dict type annotations."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if annotation is dict."""
+        return get_origin(type_annotation) is dict
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
+        """Format dict type."""
+        args = get_args(type_annotation)
+        min_dict_args = 2
+        if len(args) >= min_dict_args:
+            key_type = formatter.format(args[0])
+            value_type = formatter.format(args[1])
+            return f"dict[{key_type}, {value_type}]"
+        return "dict"
+
+
+class AnnotatedTypeHandler:
+    """Handle Annotated type annotations."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if annotation is Annotated."""
+        origin = get_origin(type_annotation)
+        return origin is Annotated
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
+        """Format Annotated type - extract the actual type."""
+        args = get_args(type_annotation)
+        if args:
+            return formatter.format(args[0])
+        return "Annotated"
+
+
+class CallableTypeHandler:
+    """Handle Callable type annotations."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if annotation is Callable."""
+        origin = get_origin(type_annotation)
+        if origin is Callable:
+            return True
+        return bool(origin and "Callable" in str(origin))
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
+        """Format Callable type."""
+        args = get_args(type_annotation)
+        min_callable_args = 2
+        if args and len(args) >= min_callable_args:
+            return f"Callable[..., {formatter.format(args[-1])}]"
+        return "Callable"
+
+
+class DefaultTypeHandler:
+    """Default handler for types that don't match other handlers."""
+
+    def can_handle(self, type_annotation: object) -> bool:  # noqa: ARG002
+        """Always returns True as the fallback handler."""
+        return True
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:  # noqa: ARG002
+        """Format type using __name__ or string representation."""
+        if hasattr(type_annotation, "__name__"):
+            return str(type_annotation.__name__)
+        return str(type_annotation)
+
+
+class TypeFormatter:
+    """Coordinator that dispatches type formatting to appropriate handlers."""
+
+    def __init__(self) -> None:
+        """Initialize the type formatter with all handlers."""
+        self.handlers: list[TypeHandler] = [
+            NoneTypeHandler(),
+            BasicTypeHandler(),
+            StringAnnotationHandler(),
+            LiteralTypeHandler(),
+            UnionTypeHandler(),
+            TupleTypeHandler(),
+            ListTypeHandler(),
+            DictTypeHandler(),
+            AnnotatedTypeHandler(),
+            CallableTypeHandler(),
+            DefaultTypeHandler(),  # Must be last as it always matches
+        ]
+
+    def format(self, type_annotation: object) -> str | list[Any]:
+        """Format a type annotation using the appropriate handler.
+
+        Args:
+            type_annotation: Type annotation to format
+
+        Returns:
+            Formatted type string or list for Literal types
+
+        """
+        for handler in self.handlers:
+            if handler.can_handle(type_annotation):
+                return handler.format(type_annotation, self)
+
+        # This should never be reached due to DefaultTypeHandler
+        return "Any"
