@@ -10,6 +10,7 @@ Each test compares extracted metadata against known-good snapshots for:
 - HorizontalFlip (simple dual transform with only 'p' parameter)
 - ColorJitter (image-only transform with multiple numeric parameters)
 - Affine (complex dual transform with mixed types including Literal[int] and Literal[str])
+- AdditiveNoise (image-only transform with Literal types and dict parameters)
 """
 
 import albumentations as A
@@ -112,6 +113,82 @@ def expected_colorjitter_metadata() -> dict:
             },
         },
         "docstring_short": "Randomly changes the brightness, contrast, saturation, and hue of an image.",
+        "has_init_schema": True,
+    }
+
+
+@pytest.fixture
+def expected_additivenoise_metadata() -> dict:
+    """Expected metadata for AdditiveNoise transform."""
+    return {
+        "name": "AdditiveNoise",
+        "module": "albumentations.augmentations.pixel.transforms",
+        "transform_type": "image_only",
+        "targets": ["image", "volume"],
+        "parameters": {
+            "noise_type": {
+                "name": "noise_type",
+                "type_hint": ["uniform", "gaussian", "laplace", "beta"],
+                "default": "uniform",
+                "description_prefix": "Type of noise distribution to use.",
+                "constraints": None,
+            },
+            "spatial_mode": {
+                "name": "spatial_mode",
+                "type_hint": ["constant", "per_pixel", "shared"],
+                "default": "constant",
+                "description_prefix": "How to generate and apply the noise.",
+                "constraints": None,
+            },
+            "noise_params": {
+                "name": "noise_params",
+                "type_hint": "dict[str, Any] | None",
+                "default": None,
+                "description_prefix": "Parameters for the chosen noise distribution.",
+                "constraints": None,
+            },
+            "approximation": {
+                "name": "approximation",
+                "type_hint": "float",
+                "default": 1.0,
+                "description_prefix": "float in [0, 1], default=1.0",
+                "constraints": {
+                    "ge": 0.0,
+                    "le": 1.0,
+                    "gt": None,
+                    "lt": None,
+                    "min_length": None,
+                    "max_length": None,
+                    "multiple_of": None,
+                    "min_value": None,
+                    "max_value": None,
+                    "pattern": None,
+                    "validators": [],
+                    "validator_info": {},
+                },
+            },
+            "p": {
+                "name": "p",
+                "type_hint": "float",
+                "default": 0.5,
+                "description": None,
+                "constraints": {
+                    "ge": 0.0,
+                    "le": 1.0,
+                    "gt": None,
+                    "lt": None,
+                    "min_length": None,
+                    "max_length": None,
+                    "multiple_of": None,
+                    "min_value": None,
+                    "max_value": None,
+                    "pattern": None,
+                    "validators": [],
+                    "validator_info": {},
+                },
+            },
+        },
+        "docstring_short": "Apply random noise to image channels using various noise distributions.",
         "has_init_schema": True,
     }
 
@@ -349,3 +426,56 @@ def test_affine_rotate_method_type_is_str_list() -> None:
     assert isinstance(rotate_method_type, list), "rotate_method type_hint should be a list"
     assert rotate_method_type == ["largest_box", "ellipse"], "rotate_method should be list of strings"
     assert all(isinstance(x, str) for x in rotate_method_type), "All values should be strings"
+
+
+def test_additivenoise_metadata_snapshot(expected_additivenoise_metadata: dict) -> None:
+    """Test that AdditiveNoise metadata extraction produces expected JSON."""
+    metadata = get_transform_metadata(A.AdditiveNoise)
+    actual = metadata.model_dump()
+
+    # Compare everything except the full docstring
+    assert actual["name"] == expected_additivenoise_metadata["name"]
+    assert actual["module"] == expected_additivenoise_metadata["module"]
+    assert actual["transform_type"] == expected_additivenoise_metadata["transform_type"]
+    assert actual["targets"] == expected_additivenoise_metadata["targets"]
+
+    # Compare parameters, checking description prefixes only
+    for param_name, expected_param in expected_additivenoise_metadata["parameters"].items():
+        actual_param = actual["parameters"][param_name]
+        assert actual_param["name"] == expected_param["name"]
+        assert actual_param["type_hint"] == expected_param["type_hint"]
+        assert actual_param["default"] == expected_param["default"]
+        assert actual_param["constraints"] == expected_param["constraints"]
+
+        # Check description prefix if provided
+        if "description_prefix" in expected_param:
+            actual_desc = actual_param.get("description") or ""
+            assert actual_desc.startswith(expected_param["description_prefix"]), (
+                f"Description for {param_name} should start with {expected_param['description_prefix']!r}"
+            )
+        elif expected_param["description"] is not None:
+            assert actual_param["description"] == expected_param["description"]
+
+    assert actual["docstring_short"] == expected_additivenoise_metadata["docstring_short"]
+    assert actual["has_init_schema"] == expected_additivenoise_metadata["has_init_schema"]
+    assert actual["docstring"] is not None
+
+
+def test_additivenoise_noise_type_is_str_list() -> None:
+    """Test that AdditiveNoise noise_type parameter uses string Literal values."""
+    metadata = get_transform_metadata(A.AdditiveNoise)
+    noise_type = metadata.parameters["noise_type"].type_hint
+
+    assert isinstance(noise_type, list), "noise_type type_hint should be a list"
+    assert noise_type == ["uniform", "gaussian", "laplace", "beta"], "noise_type should be list of strings"
+    assert all(isinstance(x, str) for x in noise_type), "All values should be strings"
+
+
+def test_additivenoise_spatial_mode_is_str_list() -> None:
+    """Test that AdditiveNoise spatial_mode parameter uses string Literal values."""
+    metadata = get_transform_metadata(A.AdditiveNoise)
+    spatial_mode = metadata.parameters["spatial_mode"].type_hint
+
+    assert isinstance(spatial_mode, list), "spatial_mode type_hint should be a list"
+    assert spatial_mode == ["constant", "per_pixel", "shared"], "spatial_mode should be list of strings"
+    assert all(isinstance(x, str) for x in spatial_mode), "All values should be strings"
