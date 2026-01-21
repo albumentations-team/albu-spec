@@ -382,7 +382,12 @@ for param_name, param in metadata.parameters.items():
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Before submitting your first contribution, please:
+
+1. Read our [Contributing Guide](CONTRIBUTING.md)
+2. Sign the [Contributor License Agreement (CLA)](CLA.md)
+
+For questions, open an [issue](https://github.com/albumentations-team/albu-spec/issues) or email vladimir@albumentations.ai
 
 ## License
 

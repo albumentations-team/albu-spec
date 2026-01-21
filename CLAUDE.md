@@ -5,9 +5,26 @@
 **Critical**: Follow these rules for all documentation:
 
 - **No summary docs on every change** - Don't create CHANGES.md, UPDATES.md, or similar
-- **Root docs only**: `README.md` and `CLAUDE.md` live in repo root
+- **Root docs only**: `README.md`, `CLAUDE.md`, `CONTRIBUTING.md`, and `CLA.md` live in repo root
 - **All other docs**: Go in `docs/` folder
 - **Reference or delete**: Every doc in `docs/` must be referenced in CLAUDE.md. If not referenced → delete it
+
+## Project Governance
+
+### Licensing
+- **Dual License**: AGPL-3.0 (open source) OR Commercial License (proprietary use)
+- See **[LICENSE](LICENSE)** for full terms
+- Commercial licensing: contact vladimir@albumentations.ai
+
+### Contributing
+- All contributors must sign **[CLA](CLA.md)** before first contribution
+- Follow **[CONTRIBUTING.md](CONTRIBUTING.md)** for development process
+- CLA grants rights for both AGPL and commercial distribution
+- Simple signing process via PR comment
+
+### Maintainer
+- **Vladimir Iglovikov** (vladimir@albumentations.ai)
+- Part of the Albumentations team
 
 ## Project Overview
 
@@ -384,6 +401,31 @@ A: **`import albumentations as A`** - AlbumentationsX uses the same import name 
 ## Additional Documentation
 
 - **[Testing Guide](docs/TESTING.md)** - Detailed testing strategy and examples
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute, development setup, PR process
+- **[Contributor License Agreement](CLA.md)** - CLA for dual licensing contributions
+
+## Contributing & Legal
+
+### Contributing to albu-spec
+
+Before contributing, please:
+1. Read **[CONTRIBUTING.md](CONTRIBUTING.md)** for development setup and process
+2. Sign the **[CLA](CLA.md)** when opening your first PR
+
+### Dual Licensing & CLA
+
+albu-spec uses dual licensing:
+- **AGPL-3.0**: For open source projects
+- **Commercial License**: For proprietary/commercial use
+
+Contributors must sign the CLA to grant rights for both licenses. The process is simple:
+1. Open a pull request
+2. CLA bot will check if you've signed
+3. Comment: `I have read the CLA Document and I hereby sign the CLA`
+4. Bot records signature
+5. PR can be merged
+
+This ensures sustainable development while serving both open source and commercial users.
 
 ## References
 
