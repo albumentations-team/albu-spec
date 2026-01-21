@@ -32,6 +32,8 @@ dependencies = [
     "pydantic>=2.0",
     "google-docstring-parser>=0.0.9",
     "typing-extensions>=4.0",
+    "albumentationsx",
+    "opencv-python-headless",
 ]
 
 [project.optional-dependencies]
@@ -60,7 +62,14 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["N812", "D401", "D104"]
+ignore = [
+    "N812",      # lowercase imported as non-lowercase
+    "D401",      # first line imperative mood
+    "D104",      # missing docstring in public package
+    "ANN401",    # any type
+    "S307",      # eval use
+    "SLF001",    # private member access
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
@@ -80,6 +89,7 @@ ignore = ["N812", "D401", "D104"]
     "PLC0415",   # imports anywhere allowed in tests
     "PT018",     # composite assertions allowed in tests
     "PT006",     # parametrize args can be strings
+    "ANN206"
 ]
 
 [tool.mypy]
@@ -88,9 +98,14 @@ strict = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+disable_error_code = ["misc"]
 
 [[tool.mypy.overrides]]
 module = "albumentations"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "cv2"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

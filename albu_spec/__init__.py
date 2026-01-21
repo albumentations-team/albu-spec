@@ -10,8 +10,6 @@ Extract comprehensive metadata from Albumentations transforms including:
 from albu_spec.extractor import get_all_transforms_metadata, get_transform_metadata
 from albu_spec.models import ConstraintInfo, ParameterMetadata, TransformMetadata
 
-__version__ = "0.1.0"
-
 __all__ = [
     "ConstraintInfo",
     "ParameterMetadata",

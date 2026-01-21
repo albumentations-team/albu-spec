@@ -67,32 +67,81 @@ class DocstringParser:
         if not transform_class.__doc__:
             return None
 
+        # Try multiple strategies in order
+        strategies = [
+            self._try_short_description,
+            self._try_long_description,
+            self._try_first_line,
+        ]
+
+        for strategy in strategies:
+            result = strategy(transform_class)
+            if result:
+                return result
+
+        return None
+
+    def _try_short_description(self, transform_class: type) -> str | None:
+        """Try to extract short description from parsed docstring.
+
+        Args:
+            transform_class: The transform class to parse
+
+        Returns:
+            Short description or None if not found
+
+        """
+        if not transform_class.__doc__:
+            return None
+
         try:
             parsed = parse_google_docstring(transform_class.__doc__)
-            # Try capitalized keys first, then lowercase
             description = parsed.get("Description") or parsed.get("short_description")
             if description:
-                # Extract first paragraph (before blank line)
                 desc_str = str(description).strip()
-                # Split by double newline or find first paragraph
                 paragraphs = desc_str.split("\n\n")
                 return paragraphs[0].strip() if paragraphs else desc_str
+        except (ValueError, KeyError, AttributeError):
+            pass
+        return None
 
+    def _try_long_description(self, transform_class: type) -> str | None:
+        """Try to extract first paragraph from long description.
+
+        Args:
+            transform_class: The transform class to parse
+
+        Returns:
+            First paragraph of long description or None if not found
+
+        """
+        if not transform_class.__doc__:
+            return None
+
+        try:
+            parsed = parse_google_docstring(transform_class.__doc__)
             long_desc = parsed.get("Long Description") or parsed.get("long_description")
             if long_desc:
-                # Use first paragraph of long description
                 long_desc_str = str(long_desc).strip()
                 paragraphs = long_desc_str.split("\n\n")
                 return paragraphs[0].strip() if paragraphs else long_desc_str
         except (ValueError, KeyError, AttributeError):
-            # Parsing failed, use fallback
             pass
+        return None
 
-        # Fallback: get first non-empty line from docstring
+    def _try_first_line(self, transform_class: type) -> str | None:
+        """Try to extract first non-empty line from raw docstring.
+
+        Args:
+            transform_class: The transform class to parse
+
+        Returns:
+            First non-empty line or None if not found
+
+        """
         if transform_class.__doc__:
             for doc_line in transform_class.__doc__.split("\n"):
                 stripped_line = doc_line.strip()
                 if stripped_line:
                     return stripped_line
-
         return None

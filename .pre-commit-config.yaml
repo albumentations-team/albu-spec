@@ -58,12 +58,12 @@ repos:
     rev: v1.19.1
     hooks:
       - id: mypy
-        files: ^src/
+        files: ^albu_spec/
         additional_dependencies: [ pydantic>=2.9, google-docstring-parser>=0.0.9, typing-extensions>=4.0 ]
         args: [ --config-file=pyproject.toml ]
   - repo: https://github.com/ternaus/google-docstring-parser
     rev: 0.0.9
     hooks:
       - id: check-google-docstrings
-        files: ^src/
+        files: ^albu_spec/
         additional_dependencies: ["tomli>=2.0.0"]

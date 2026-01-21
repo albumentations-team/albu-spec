@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import inspect
-import typing
-from collections.abc import Callable
-from typing import Annotated, Any, Literal, get_args, get_origin
+from typing import Any, Literal, cast
+
+import albumentations as A
 
 from albu_spec.docstring_parser import DocstringParser
 from albu_spec.models import ConstraintInfo, ParameterMetadata, TransformCollection, TransformMetadata
 from albu_spec.schema_parser import SchemaParser
+from albu_spec.type_formatters import TypeFormatter
 
 # Transforms to ignore
 IGNORED_CLASSES = {
@@ -32,6 +33,7 @@ class TransformMetadataExtractor:
         """Initialize the metadata extractor."""
         self.schema_parser = SchemaParser()
         self.docstring_parser = DocstringParser()
+        self.type_formatter = TypeFormatter()
 
     def get_transform_metadata(self, transform_class: type) -> TransformMetadata:
         """Extract complete metadata for a single transform.
@@ -66,9 +68,13 @@ class TransformMetadataExtractor:
         )
 
         # Cast transform_type to Literal type expected by TransformMetadata
-        valid_transform_type: Literal["image_only", "dual", "transforms_3d", "unknown"] = (
-            transform_type if transform_type in ("image_only", "dual", "transforms_3d", "unknown") else "unknown"  # type: ignore[assignment]
-        )
+        if transform_type in ("image_only", "dual", "transforms_3d"):
+            valid_transform_type = cast(
+                "Literal['image_only', 'dual', 'transforms_3d', 'unknown']",
+                transform_type,
+            )
+        else:
+            valid_transform_type = "unknown"
 
         return TransformMetadata(
             name=name,
@@ -101,10 +107,11 @@ class TransformMetadataExtractor:
         parameters: dict[str, ParameterMetadata] = {}
 
         try:
-            # Get __init__ from class, not instance
-            init_method = transform_class.__init__  # type: ignore[misc]
+            # Get signature from the class __init__ method
+            # Access through the class, not instance, to avoid mypy warning
+            init_method = transform_class.__init__
             init_signature = inspect.signature(init_method)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, AttributeError):
             return parameters
 
         for param_name, param in init_signature.parameters.items():
@@ -165,7 +172,7 @@ class TransformMetadataExtractor:
 
         return self._format_type(annotation)
 
-    def _format_type(self, type_annotation: object) -> str | list[Any]:  # noqa: C901, PLR0911, PLR0912
+    def _format_type(self, type_annotation: object) -> str | list[Any]:
         """Format a type annotation into a readable string.
 
         Args:
@@ -175,106 +182,9 @@ class TransformMetadataExtractor:
             Formatted type string or list for Literal types
 
         """
-        # Handle None
-        if type_annotation is None or type_annotation is type(None):
-            return "None"
+        return self.type_formatter.format(type_annotation)
 
-        # Handle basic types
-        if type_annotation in (int, float, bool, str):
-            return str(type_annotation.__name__)
-
-        # Handle string annotations - evaluate them first
-        if isinstance(type_annotation, str):
-            try:
-                # Try to evaluate the string annotation
-                import cv2  # noqa: PLC0415
-
-                # Create namespace with common imports
-                namespace = {
-                    "Literal": typing.Literal,
-                    "Union": typing.Union,
-                    "Optional": typing.Optional,
-                    "tuple": tuple,
-                    "dict": dict,
-                    "list": list,
-                    "int": int,
-                    "float": float,
-                    "str": str,
-                    "bool": bool,
-                    "cv2": cv2,
-                }
-                evaluated = eval(type_annotation, namespace)  # noqa: S307
-                # Recursively format the evaluated type
-                return self._format_type(evaluated)
-            except (ValueError, NameError, SyntaxError, AttributeError):
-                # If evaluation fails, return string as-is
-                return str(type_annotation)
-
-        # Get origin and args
-        origin = get_origin(type_annotation)
-        args = get_args(type_annotation)
-
-        # Handle Literal - preserve original types (ints, strings, etc.)
-        if origin is Literal:
-            return list(args)
-
-        # Handle Union (including | syntax)
-        if origin is type(int | str) or (origin and "Union" in str(origin)):
-            formatted_types = [self._format_type(arg) for arg in args]
-            # Flatten any nested lists
-            flat_types: list[str] = []
-            for t in formatted_types:
-                if isinstance(t, list):
-                    flat_types.extend(str(item) for item in t)
-                else:
-                    flat_types.append(str(t))
-            return " | ".join(flat_types)
-
-        # Handle tuple
-        tuple_ellipsis_length = 2
-        if origin is tuple:
-            if args:
-                if len(args) == tuple_ellipsis_length and args[1] is ...:
-                    return f"tuple[{self._format_type(args[0])}, ...]"
-                formatted_args = [str(self._format_type(arg)) for arg in args]
-                return f"tuple[{', '.join(formatted_args)}]"
-            return "tuple"
-
-        # Handle list
-        if origin is list:
-            if args:
-                return f"list[{self._format_type(args[0])}]"
-            return "list"
-
-        # Handle dict
-        min_dict_args = 2
-        if origin is dict:
-            if len(args) >= min_dict_args:
-                key_type = self._format_type(args[0])
-                value_type = self._format_type(args[1])
-                return f"dict[{key_type}, {value_type}]"
-            return "dict"
-
-        # Handle Annotated
-        if origin is Annotated:
-            if args:
-                return self._format_type(args[0])
-            return "Annotated"
-
-        # Handle Callable
-        min_callable_args = 2
-        if origin is Callable or (origin and "Callable" in str(origin)):
-            if args and len(args) >= min_callable_args:
-                return f"Callable[..., {self._format_type(args[-1])}]"
-            return "Callable"
-
-        # Fallback: use __name__ or string representation
-        if hasattr(type_annotation, "__name__"):
-            return str(type_annotation.__name__)
-
-        return str(type_annotation)
-
-    def _format_default_value(self, value: object) -> Any:  # noqa: ANN401
+    def _format_default_value(self, value: object) -> Any:
         """Format default value for display.
 
         Args:
@@ -284,7 +194,7 @@ class TransformMetadataExtractor:
             Formatted default value
 
         """
-        if callable(value) and not isinstance(value, type):
+        if callable(value) and not isinstance(value, type) and hasattr(value, "__name__"):
             return f"<function {value.__name__}>"
 
         return value
@@ -299,18 +209,12 @@ class TransformMetadataExtractor:
             Transform type string
 
         """
-        try:
-            # Try to import albumentations classes
-            import albumentations as A  # noqa: PLC0415
-
-            if issubclass(transform_class, A.Transform3D):
-                return "transforms_3d"
-            if issubclass(transform_class, A.ImageOnlyTransform):
-                return "image_only"
-            if issubclass(transform_class, A.DualTransform):
-                return "dual"
-        except (ImportError, TypeError):
-            pass
+        if issubclass(transform_class, A.Transform3D):
+            return "transforms_3d"
+        if issubclass(transform_class, A.ImageOnlyTransform):
+            return "image_only"
+        if issubclass(transform_class, A.DualTransform):
+            return "dual"
 
         return "unknown"
 
@@ -327,7 +231,7 @@ class TransformMetadataExtractor:
         targets: list[str] = []
 
         if hasattr(transform_class, "_targets"):
-            targets_attr = transform_class._targets  # noqa: SLF001
+            targets_attr = transform_class._targets
 
             # Handle various types of _targets
             if isinstance(targets_attr, (list, tuple)) or (
@@ -340,19 +244,13 @@ class TransformMetadataExtractor:
 
         return targets
 
-    def get_all_transforms_metadata(self) -> TransformCollection:  # noqa: C901
+    def get_all_transforms_metadata(self) -> TransformCollection:
         """Extract metadata for all Albumentations transforms.
 
         Returns:
             TransformCollection with all transforms grouped by type
 
         """
-        try:
-            import albumentations as A  # noqa: PLC0415
-        except ImportError as err:
-            msg = "albumentations package is not installed. Please install it to extract transform metadata."
-            raise ImportError(msg) from err
-
         collection = TransformCollection()
 
         # Find all transform classes

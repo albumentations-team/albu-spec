@@ -2,11 +2,23 @@
 
 import inspect
 import re
+from collections.abc import Callable
 from typing import Annotated, Any, get_args, get_origin
 
 from pydantic.fields import FieldInfo
 
 from albu_spec.models import ConstraintInfo
+
+# Mapping of metadata type names to constraint attributes and value extractors
+CONSTRAINT_MAPPING: dict[str, tuple[str, str]] = {
+    "Ge": ("ge", "ge"),
+    "Le": ("le", "le"),
+    "Gt": ("gt", "gt"),
+    "Lt": ("lt", "lt"),
+    "MinLen": ("min_length", "min_length"),
+    "MaxLen": ("max_length", "max_length"),
+    "MultipleOf": ("multiple_of", "multiple_of"),
+}
 
 
 class SchemaParser:
@@ -22,35 +34,75 @@ class SchemaParser:
             Dictionary mapping parameter names to their constraints
 
         """
-        constraints_map: dict[str, ConstraintInfo] = {}
-
-        # Check if the transform has an InitSchema
         if not hasattr(transform_class, "InitSchema"):
-            return constraints_map
+            return {}
 
         init_schema = transform_class.InitSchema
+        constraints_map = self._extract_field_constraints_from_schema(init_schema)
+        self._extract_validator_constraints(init_schema, constraints_map)
 
-        # Get the model fields from the schema
+        return constraints_map
+
+    def _extract_field_constraints_from_schema(self, init_schema: type) -> dict[str, ConstraintInfo]:
+        """Extract field constraints from InitSchema model_fields.
+
+        Args:
+            init_schema: The InitSchema class
+
+        Returns:
+            Dictionary mapping field names to their constraints
+
+        """
+        constraints_map: dict[str, ConstraintInfo] = {}
+
         if hasattr(init_schema, "model_fields"):
             for field_name, field_info in init_schema.model_fields.items():
                 constraints = self._extract_field_constraints(field_name, field_info)
                 if constraints:
                     constraints_map[field_name] = constraints
 
-        # Also check for validators
-        if hasattr(init_schema, "__pydantic_decorators__"):
-            decorators = init_schema.__pydantic_decorators__
-            if hasattr(decorators, "field_validators"):
-                for field_name, decorator in decorators.field_validators.items():
-                    if field_name not in constraints_map:
-                        constraints_map[field_name] = ConstraintInfo()
-                    # Decorator object has a 'func' attribute
-                    if hasattr(decorator, "func"):
-                        constraints_map[field_name].validators.append(decorator.func.__name__)
-
         return constraints_map
 
-    def _extract_field_constraints(self, _field_name: str, field_info: FieldInfo) -> ConstraintInfo | None:  # noqa: C901
+    def _extract_validator_constraints(self, init_schema: type, constraints_map: dict[str, ConstraintInfo]) -> None:
+        """Extract validator information from InitSchema decorators.
+
+        Args:
+            init_schema: The InitSchema class
+            constraints_map: Dictionary to update with validator information
+
+        """
+        if not hasattr(init_schema, "__pydantic_decorators__"):
+            return
+
+        decorators = init_schema.__pydantic_decorators__
+        if not hasattr(decorators, "field_validators"):
+            return
+
+        for decorator in decorators.field_validators.values():
+            self._process_field_validator(decorator, constraints_map)
+
+    def _process_field_validator(self, decorator: Any, constraints_map: dict[str, ConstraintInfo]) -> None:
+        """Process a single field validator decorator.
+
+        Args:
+            decorator: The validator decorator
+            constraints_map: Dictionary to update with validator information
+
+        """
+        if not (hasattr(decorator, "info") and hasattr(decorator.info, "fields")):
+            return
+
+        field_names = decorator.info.fields
+        if not hasattr(decorator, "func"):
+            return
+
+        validator_name = decorator.func.__name__
+        for field_name in field_names:
+            if field_name not in constraints_map:
+                constraints_map[field_name] = ConstraintInfo()
+            constraints_map[field_name].validators.append(validator_name)
+
+    def _extract_field_constraints(self, _field_name: str, field_info: FieldInfo) -> ConstraintInfo | None:
         """Extract constraints from a Pydantic FieldInfo object.
 
         Args:
@@ -67,30 +119,18 @@ class SchemaParser:
         # In Pydantic v2, constraints are stored in metadata list
         if hasattr(field_info, "metadata") and field_info.metadata:
             for metadata_item in field_info.metadata:
-                # Check for constraint objects (Ge, Le, Gt, Lt, etc.)
+                # Check for constraint objects using mapping
                 metadata_type = type(metadata_item).__name__
 
-                if metadata_type == "Ge" and hasattr(metadata_item, "ge"):
-                    constraints.ge = float(metadata_item.ge)
-                    has_constraints = True
-                elif metadata_type == "Le" and hasattr(metadata_item, "le"):
-                    constraints.le = float(metadata_item.le)
-                    has_constraints = True
-                elif metadata_type == "Gt" and hasattr(metadata_item, "gt"):
-                    constraints.gt = float(metadata_item.gt)
-                    has_constraints = True
-                elif metadata_type == "Lt" and hasattr(metadata_item, "lt"):
-                    constraints.lt = float(metadata_item.lt)
-                    has_constraints = True
-                elif metadata_type == "MinLen" and hasattr(metadata_item, "min_length"):
-                    constraints.min_length = metadata_item.min_length
-                    has_constraints = True
-                elif metadata_type == "MaxLen" and hasattr(metadata_item, "max_length"):
-                    constraints.max_length = metadata_item.max_length
-                    has_constraints = True
-                elif metadata_type == "MultipleOf" and hasattr(metadata_item, "multiple_of"):
-                    constraints.multiple_of = float(metadata_item.multiple_of)
-                    has_constraints = True
+                if metadata_type in CONSTRAINT_MAPPING:
+                    constraint_attr, value_attr = CONSTRAINT_MAPPING[metadata_type]
+                    if hasattr(metadata_item, value_attr):
+                        value = getattr(metadata_item, value_attr)
+                        # Convert to float for numeric constraints
+                        if constraint_attr in ("ge", "le", "gt", "lt", "multiple_of"):
+                            value = float(value)
+                        setattr(constraints, constraint_attr, value)
+                        has_constraints = True
                 elif metadata_type == "_PydanticGeneralMetadata" and hasattr(metadata_item, "pattern"):
                     constraints.pattern = metadata_item.pattern
                     has_constraints = True
@@ -133,7 +173,7 @@ class SchemaParser:
 
         return validator_info
 
-    def _analyze_validator_function(self, func: object) -> dict[str, Any]:
+    def _analyze_validator_function(self, func: Callable[..., Any]) -> dict[str, Any]:
         """Analyze a validator function to extract constraint information.
 
         Args:
@@ -147,7 +187,7 @@ class SchemaParser:
 
         # Try to get the function source to extract bounds
         try:
-            source = inspect.getsource(func)  # type: ignore[arg-type]
+            source = inspect.getsource(func)
             info["source_available"] = True
 
             # Look for common patterns like check_range_bounds(min, max)
