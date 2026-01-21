@@ -195,6 +195,8 @@ class SchemaParser:
                 # Try to extract the bounds from the source
                 info["type"] = "range_bounds"
 
+                # Regex only handles literal numeric values
+                # Variables/expressions need manual inspection
                 bounds_match = re.search(r"check_range_bounds\s*\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)", source)
                 if bounds_match:
                     info["min_value"] = float(bounds_match.group(1))

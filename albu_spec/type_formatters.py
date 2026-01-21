@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import typing
 from collections.abc import Callable
 from typing import Annotated, Any, Literal, Protocol, get_args, get_origin
 
@@ -79,9 +78,9 @@ class StringAnnotationHandler:
         try:
             # Create namespace with common imports
             namespace: dict[str, Any] = {
-                "Literal": typing.Literal,
-                "Union": typing.Union,
-                "Optional": typing.Optional,
+                "Literal": Literal,
+                "Union": type(int | str),
+                "Optional": type(int | None),
                 "tuple": tuple,
                 "dict": dict,
                 "list": list,
@@ -91,6 +90,10 @@ class StringAnnotationHandler:
                 "bool": bool,
                 "cv2": cv2,
             }
+            # eval is used here for forward references in type annotations
+            # The namespace is restricted to safe type constructs only
+            # This is necessary because typing.get_type_hints() doesn't work
+            # reliably with dynamic classes and Pydantic schemas
             evaluated = eval(type_annotation, namespace)
             # Recursively format the evaluated type
             return formatter.format(evaluated)

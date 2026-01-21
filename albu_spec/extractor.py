@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 import albumentations as A
 

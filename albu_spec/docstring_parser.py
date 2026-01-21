@@ -102,6 +102,7 @@ class DocstringParser:
                 paragraphs = desc_str.split("\n\n")
                 return paragraphs[0].strip() if paragraphs else desc_str
         except (ValueError, KeyError, AttributeError):
+            # Parsing failed, try next strategy
             pass
         return None
 
@@ -126,6 +127,7 @@ class DocstringParser:
                 paragraphs = long_desc_str.split("\n\n")
                 return paragraphs[0].strip() if paragraphs else long_desc_str
         except (ValueError, KeyError, AttributeError):
+            # Parsing failed, try next strategy
             pass
         return None
 
