@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable
 from typing import Annotated, Any, ForwardRef, Literal, Protocol, get_args, get_origin
 
@@ -95,6 +94,52 @@ class ForwardRefHandler:
         """Check if annotation is ForwardRef."""
         return isinstance(type_annotation, ForwardRef)
 
+    def _extract_annotated_base_type(self, forward_str: str) -> str | None:
+        """Extract base type from Annotated[T, ...] handling nested brackets.
+
+        Args:
+            forward_str: String like "Annotated[dict[str, int], Field()]"
+
+        Returns:
+            Base type string like "dict[str, int]", or None if extraction fails
+
+        Example:
+            >>> self._extract_annotated_base_type("Annotated[dict[str, int], Field()]")
+            "dict[str, int]"
+            >>> self._extract_annotated_base_type("Annotated[int, Field()]")
+            "int"
+
+        """
+        # Find the opening bracket after "Annotated"
+        start = forward_str.find("Annotated[")
+        if start == -1:
+            return None
+
+        # Start after "Annotated["
+        start += len("Annotated[")
+
+        # Track bracket depth to handle nested generics
+        bracket_depth = 0
+        i = start
+
+        while i < len(forward_str):
+            char = forward_str[i]
+
+            if char == "[":
+                bracket_depth += 1
+            elif char == "]":
+                if bracket_depth == 0:
+                    # Found the closing bracket for this type argument
+                    return forward_str[start:i].strip()
+                bracket_depth -= 1
+            elif char == "," and bracket_depth == 0:
+                # Found comma at depth 0 - end of first type argument
+                return forward_str[start:i].strip()
+
+            i += 1
+
+        return None
+
     def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
         """Format ForwardRef by evaluating the forward string."""
         if not isinstance(type_annotation, ForwardRef):
@@ -114,9 +159,9 @@ class ForwardRefHandler:
             # If evaluation failed but it looks like Annotated[T, ...], extract T
             if "Annotated[" in forward_str:
                 # Extract the first type argument from Annotated[T, ...]
-                match = re.match(r"Annotated\[([^,\[\]]+)", forward_str)
-                if match:
-                    base_type = match.group(1).strip()
+                # Use proper bracket matching to handle nested generics like dict[str, int]
+                base_type = self._extract_annotated_base_type(forward_str)
+                if base_type:
                     # Try to evaluate just the base type
                     evaluated_base = evaluate_string_annotation(base_type)
                     if evaluated_base is not base_type and not isinstance(evaluated_base, str):

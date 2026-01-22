@@ -25,8 +25,6 @@ def create_type_namespace() -> dict[str, Any]:
     return {
         "Annotated": Annotated,
         "Literal": Literal,
-        "Union": type(int | str),
-        "Optional": type(int | None),
         "tuple": tuple,
         "dict": dict,
         "list": list,
