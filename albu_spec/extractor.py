@@ -139,9 +139,9 @@ class TransformMetadataExtractor:
 
             # Get constraints from schema or from type annotation
             constraints = schema_constraints.get(param_name)
-            if constraints is None and param.annotation is not inspect.Parameter.empty:
-                # Try to extract from Annotated types
-                constraints = self.schema_parser.extract_annotated_constraints(param.annotation)
+            if constraints is None and raw_type is not inspect.Parameter.empty:
+                # Try to extract from Annotated types in the raw_type (which prefers InitSchema)
+                constraints = self.schema_parser.extract_annotated_constraints(raw_type)
 
             parameters[param_name] = ParameterMetadata(
                 name=param_name,

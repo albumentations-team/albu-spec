@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
-from typing import Annotated, Any, Literal, Protocol, get_args, get_origin
+from typing import Annotated, Any, ForwardRef, Literal, Protocol, get_args, get_origin
 
 from albu_spec.type_utils import evaluate_string_annotation
 
@@ -85,6 +86,48 @@ class StringAnnotationHandler:
 
         # Recursively format the evaluated type
         return formatter.format(evaluated)
+
+
+class ForwardRefHandler:
+    """Handle ForwardRef type annotations."""
+
+    def can_handle(self, type_annotation: object) -> bool:
+        """Check if annotation is ForwardRef."""
+        return isinstance(type_annotation, ForwardRef)
+
+    def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
+        """Format ForwardRef by evaluating the forward string."""
+        if not isinstance(type_annotation, ForwardRef):
+            return str(type_annotation)
+
+        # Get the forward reference string
+        if hasattr(type_annotation, "__forward_arg__"):
+            forward_str = type_annotation.__forward_arg__
+
+            # Try to evaluate it
+            evaluated = evaluate_string_annotation(forward_str)
+
+            # If evaluation succeeded and it's not a string, format it
+            if evaluated is not forward_str and not isinstance(evaluated, str):
+                return formatter.format(evaluated)
+
+            # If evaluation failed but it looks like Annotated[T, ...], extract T
+            if "Annotated[" in forward_str:
+                # Extract the first type argument from Annotated[T, ...]
+                match = re.match(r"Annotated\[([^,\[\]]+)", forward_str)
+                if match:
+                    base_type = match.group(1).strip()
+                    # Try to evaluate just the base type
+                    evaluated_base = evaluate_string_annotation(base_type)
+                    if evaluated_base is not base_type and not isinstance(evaluated_base, str):
+                        return formatter.format(evaluated_base)
+                    return base_type
+
+            # If evaluation failed, return the string as-is
+            return forward_str
+
+        # Fallback: return string representation
+        return str(type_annotation)
 
 
 class LiteralTypeHandler:
@@ -236,6 +279,7 @@ class TypeFormatter:
             NoneTypeHandler(),
             BasicTypeHandler(),
             StringAnnotationHandler(),
+            ForwardRefHandler(),
             LiteralTypeHandler(),
             UnionTypeHandler(),
             TupleTypeHandler(),

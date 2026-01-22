@@ -3,7 +3,7 @@
 import inspect
 import re
 from collections.abc import Callable
-from typing import Annotated, Any, get_args, get_origin
+from typing import Annotated, Any, ForwardRef, get_args, get_origin
 
 from pydantic.fields import FieldInfo
 
@@ -222,12 +222,23 @@ class SchemaParser:
         """Extract constraints from Annotated type hints.
 
         Args:
-            type_annotation: Type annotation to analyze
+            type_annotation: Type annotation to analyze (may be ForwardRef)
 
         Returns:
             ConstraintInfo if constraints found, None otherwise
 
         """
+        # Handle ForwardRef - try to get args directly from it
+        if isinstance(type_annotation, ForwardRef):
+            # For ForwardRef, we can't easily evaluate it without the proper namespace
+            # But Pydantic's FieldInfo already has the annotation as ForwardRef with metadata
+            # We need to check if there's a __forward_evaluated__ attribute
+            if hasattr(type_annotation, "__forward_evaluated__") and type_annotation.__forward_evaluated__:
+                type_annotation = type_annotation.__forward_value__
+            else:
+                # Can't extract from unevaluated ForwardRef
+                return None
+
         origin = get_origin(type_annotation)
 
         if origin is Annotated:

@@ -6,9 +6,10 @@ formatting, and comparison modules to avoid code duplication.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 import cv2
+from pydantic import AfterValidator, Field
 
 
 def create_type_namespace() -> dict[str, Any]:
@@ -22,6 +23,7 @@ def create_type_namespace() -> dict[str, Any]:
 
     """
     return {
+        "Annotated": Annotated,
         "Literal": Literal,
         "Union": type(int | str),
         "Optional": type(int | None),
@@ -34,6 +36,8 @@ def create_type_namespace() -> dict[str, Any]:
         "bool": bool,
         "Any": Any,
         "cv2": cv2,
+        "Field": Field,
+        "AfterValidator": AfterValidator,
     }
 
 
