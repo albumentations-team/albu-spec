@@ -244,6 +244,27 @@ pytest tests/test_report_generator.py
 - **Line length**: 120 chars (configured in pyproject.toml)
 - **Imports**: Absolute imports, grouped (stdlib, third-party, local)
 
+### Extraction Philosophy
+- **Prefer structured data over parsing**: Extract information from type objects, `inspect` signatures, and Pydantic fields
+- **Avoid regex on strings**: Don't parse string representations with regular expressions when structured metadata is available
+- **Use typing introspection**: Use `get_origin()`, `get_args()`, `get_type_hints()` for type analysis
+- **Access object attributes**: Use `hasattr()`, `getattr()`, `inspect` module for metadata extraction
+
+```python
+# Good: Extract from structured data
+from typing import get_origin, get_args
+origin = get_origin(annotation)  # Get Union, Literal, etc.
+args = get_args(annotation)      # Get type arguments
+
+# Good: Use Pydantic field metadata
+field_info = init_schema.model_fields[param_name]
+constraints = field_info.metadata  # Structured FieldInfo
+
+# Bad: Parse string representations
+type_str = str(annotation)
+if "Union[" in type_str:  # Fragile regex parsing
+    match = re.search(r"Union\[(.*)\]", type_str)
+
 ### Testing Style
 ```python
 # Good: Parametrized, specific assertion messages
