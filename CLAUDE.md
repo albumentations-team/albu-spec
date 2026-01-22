@@ -4,10 +4,12 @@
 
 **Critical**: Follow these rules for all documentation:
 
-- **No summary docs on every change** - Don't create CHANGES.md, UPDATES.md, or similar
+- **No summary docs on every change** - Don't create CHANGES.md, UPDATES.md, or similar for small fixes
 - **Root docs only**: `README.md`, `CLAUDE.md`, `CONTRIBUTING.md`, and `CLA.md` live in repo root
 - **All other docs**: Go in `docs/` folder
 - **Reference or delete**: Every doc in `docs/` must be referenced in CLAUDE.md. If not referenced → delete it
+- **Create docs for**: Major features, testing philosophies, usage guides, integration guides
+- **Don't create docs for**: Individual bug fixes, minor refactors, trivial changes
 
 ## Project Governance
 
@@ -242,6 +244,27 @@ pytest tests/test_report_generator.py
 - **Line length**: 120 chars (configured in pyproject.toml)
 - **Imports**: Absolute imports, grouped (stdlib, third-party, local)
 
+### Extraction Philosophy
+- **Prefer structured data over parsing**: Extract information from type objects, `inspect` signatures, and Pydantic fields
+- **Avoid regex on strings**: Don't parse string representations with regular expressions when structured metadata is available
+- **Use typing introspection**: Use `get_origin()`, `get_args()`, `get_type_hints()` for type analysis
+- **Access object attributes**: Use `hasattr()`, `getattr()`, `inspect` module for metadata extraction
+
+```python
+# Good: Extract from structured data
+from typing import get_origin, get_args
+origin = get_origin(annotation)  # Get Union, Literal, etc.
+args = get_args(annotation)      # Get type arguments
+
+# Good: Use Pydantic field metadata
+field_info = init_schema.model_fields[param_name]
+constraints = field_info.metadata  # Structured FieldInfo
+
+# Bad: Parse string representations
+type_str = str(annotation)
+if "Union[" in type_str:  # Fragile regex parsing
+    match = re.search(r"Union\[(.*)\]", type_str)
+
 ### Testing Style
 ```python
 # Good: Parametrized, specific assertion messages
@@ -401,6 +424,8 @@ A: **`import albumentations as A`** - AlbumentationsX uses the same import name 
 ## Additional Documentation
 
 - **[Testing Guide](docs/TESTING.md)** - Detailed testing strategy and examples
+- **[Type Comparison Guide](docs/TYPE_COMPARISON.md)** - How to use type comparison for consistency validation
+- **[Pre-Commit Hook Guide](docs/PRE_COMMIT_GUIDE.md)** - Creating pre-commit hooks for AlbumentationsX
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute, development setup, PR process
 - **[Contributor License Agreement](CLA.md)** - CLA for dual licensing contributions
 

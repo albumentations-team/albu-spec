@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING, Any, cast
+import sys
+from typing import TYPE_CHECKING, Any, cast, get_type_hints
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -117,13 +118,35 @@ class TransformMetadataExtractor:
         except (ValueError, TypeError, AttributeError):
             return parameters
 
+        # Use get_type_hints to resolve string annotations with module context
+        try:
+            # Get the module where the transform is defined to access its namespace
+            transform_module = sys.modules.get(transform_class.__module__)
+            module_globals = vars(transform_module) if transform_module else {}
+
+            type_hints = get_type_hints(
+                init_method,
+                globalns=module_globals,
+                localns={},
+                include_extras=True,
+            )
+        except (ValueError, TypeError, AttributeError, NameError):
+            # Fallback to using raw signature annotations
+            type_hints = {}
+
         for param_name, param in init_signature.parameters.items():
             # Skip self and strict (strict is in InitSchema but not actually in __init__)
             if param_name in {"self", "strict"}:
                 continue
 
-            # Get type hint
-            type_hint = self._format_type_hint(param.annotation, param_name, transform_class)
+            # Extract raw type annotation first (separation of concerns)
+            raw_type = self._extract_type_annotation(param.annotation, param_name, transform_class)
+
+            # Use resolved type hint if available (handles string annotations properly)
+            resolved_type = type_hints.get(param_name, raw_type)
+
+            # Format type for display/JSON
+            type_hint = self._format_type(resolved_type)
 
             # Get default value
             default_value = param.default if param.default is not inspect.Parameter.empty else None
@@ -136,9 +159,8 @@ class TransformMetadataExtractor:
 
             # Get constraints from schema or from type annotation
             constraints = schema_constraints.get(param_name)
-            if constraints is None and param.annotation is not inspect.Parameter.empty:
-                # Try to extract from Annotated types
-                constraints = self.schema_parser.extract_annotated_constraints(param.annotation)
+            if constraints is None:
+                constraints = self.schema_parser.extract_annotated_constraints(resolved_type)
 
             parameters[param_name] = ParameterMetadata(
                 name=param_name,
@@ -150,30 +172,40 @@ class TransformMetadataExtractor:
 
         return parameters
 
-    def _format_type_hint(self, annotation: object, param_name: str, transform_class: type) -> str | list[Any]:
-        """Format type annotation as human-readable string.
+    def _extract_type_annotation(self, annotation: object, param_name: str, transform_class: type) -> object:
+        """Extract raw type annotation, preferring InitSchema if available.
+
+        This method extracts the type annotation without formatting it to a string,
+        enabling semantic type comparison and other operations on type objects.
 
         Args:
-            annotation: Type annotation
+            annotation: Type annotation from __init__ parameter
             param_name: Parameter name (for context)
             transform_class: Transform class (for InitSchema lookup)
 
         Returns:
-            Formatted type string or list of strings for Literal types
+            Raw type annotation object (not formatted to string)
 
         """
         if annotation is inspect.Parameter.empty:
-            return "Any"
+            # Try to get type from InitSchema if __init__ has no annotation
+            if hasattr(transform_class, "InitSchema"):
+                init_schema = transform_class.InitSchema
+                if hasattr(init_schema, "model_fields") and param_name in init_schema.model_fields:
+                    field_info = init_schema.model_fields[param_name]
+                    if hasattr(field_info, "annotation"):
+                        return field_info.annotation
+            return annotation
 
-        # Try to get more precise type from InitSchema if available
+        # Prefer InitSchema type if available (it's usually more precise)
         if hasattr(transform_class, "InitSchema"):
             init_schema = transform_class.InitSchema
             if hasattr(init_schema, "model_fields") and param_name in init_schema.model_fields:
                 field_info = init_schema.model_fields[param_name]
                 if hasattr(field_info, "annotation"):
-                    annotation = field_info.annotation
+                    return field_info.annotation
 
-        return self._format_type(annotation)
+        return annotation
 
     def _format_type(self, type_annotation: object) -> str | list[Any]:
         """Format a type annotation into a readable string.
@@ -185,6 +217,10 @@ class TransformMetadataExtractor:
             Formatted type string or list for Literal types
 
         """
+        # Handle inspect.Parameter.empty
+        if type_annotation is inspect.Parameter.empty:
+            return "Any"
+
         return self.type_formatter.format(type_annotation)
 
     def _format_default_value(self, value: object) -> Any:

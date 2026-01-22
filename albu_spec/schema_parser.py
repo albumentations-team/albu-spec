@@ -3,11 +3,12 @@
 import inspect
 import re
 from collections.abc import Callable
-from typing import Annotated, Any, get_args, get_origin
+from typing import Annotated, Any, ForwardRef, get_args, get_origin
 
 from pydantic.fields import FieldInfo
 
 from albu_spec.models import ConstraintInfo
+from albu_spec.type_utils import evaluate_string_annotation
 
 # Mapping of metadata type names to constraint attributes and value extractors
 CONSTRAINT_MAPPING: dict[str, tuple[str, str]] = {
@@ -218,16 +219,96 @@ class SchemaParser:
 
         return info
 
+    def _handle_forward_ref(self, type_annotation: ForwardRef) -> Any:
+        """Handle ForwardRef by attempting evaluation.
+
+        Args:
+            type_annotation: ForwardRef to evaluate
+
+        Returns:
+            Evaluated type object or None if evaluation fails
+
+        """
+        # Try to evaluate the ForwardRef to get the actual type
+        if hasattr(type_annotation, "__forward_evaluated__") and type_annotation.__forward_evaluated__:
+            return type_annotation.__forward_value__
+        if hasattr(type_annotation, "__forward_arg__"):
+            forward_str = type_annotation.__forward_arg__
+            evaluated = evaluate_string_annotation(forward_str)
+            if evaluated is not forward_str and not isinstance(evaluated, str):
+                return evaluated
+        return None
+
+    def _merge_field_constraints(self, target: ConstraintInfo, source: ConstraintInfo) -> None:  # noqa: C901
+        """Merge constraint fields from source to target.
+
+        Args:
+            target: Constraint object to merge into
+            source: Constraint object to merge from
+
+        """
+        if source.ge is not None:
+            target.ge = source.ge
+        if source.le is not None:
+            target.le = source.le
+        if source.gt is not None:
+            target.gt = source.gt
+        if source.lt is not None:
+            target.lt = source.lt
+        if source.min_length is not None:
+            target.min_length = source.min_length
+        if source.max_length is not None:
+            target.max_length = source.max_length
+        if source.multiple_of is not None:
+            target.multiple_of = source.multiple_of
+        if source.pattern is not None:
+            target.pattern = source.pattern
+        if source.validator_info:
+            target.validator_info.update(source.validator_info)
+        if source.validators:
+            target.validators.extend(source.validators)
+        if source.min_value is not None:
+            target.min_value = source.min_value
+        if source.max_value is not None:
+            target.max_value = source.max_value
+
+    def _extract_validator_bounds(self, constraints: ConstraintInfo, validator_info: dict[str, Any]) -> None:
+        """Extract min/max values from validator info.
+
+        Args:
+            constraints: Constraint object to update
+            validator_info: Validator metadata dictionary
+
+        """
+        for validator_data in validator_info.values():
+            if isinstance(validator_data, dict):
+                if "min_value" in validator_data:
+                    constraints.min_value = validator_data["min_value"]
+                if "max_value" in validator_data:
+                    constraints.max_value = validator_data["max_value"]
+
     def extract_annotated_constraints(self, type_annotation: object) -> ConstraintInfo | None:
         """Extract constraints from Annotated type hints.
 
         Args:
-            type_annotation: Type annotation to analyze
+            type_annotation: Type annotation to analyze (may be ForwardRef or string)
 
         Returns:
             ConstraintInfo if constraints found, None otherwise
 
         """
+        # Handle string annotations (from __future__ import annotations)
+        # Caller should use get_type_hints to resolve them with proper context
+        if isinstance(type_annotation, str):
+            return None
+
+        # Handle ForwardRef by attempting evaluation
+        if isinstance(type_annotation, ForwardRef):
+            evaluated = self._handle_forward_ref(type_annotation)
+            if evaluated is None:
+                return None
+            type_annotation = evaluated
+
         origin = get_origin(type_annotation)
 
         if origin is Annotated:
@@ -238,18 +319,22 @@ class SchemaParser:
                 constraints = ConstraintInfo()
                 has_constraints = False
 
+                # Extract Field constraints from FieldInfo metadata
+                for metadata_item in metadata:
+                    if isinstance(metadata_item, FieldInfo):
+                        field_constraints = self._extract_field_constraints("", metadata_item)
+                        if field_constraints:
+                            self._merge_field_constraints(constraints, field_constraints)
+                            has_constraints = True
+
+                # Extract validator info from AfterValidator and similar
                 validator_info = self._extract_validator_metadata(list(metadata))
                 if validator_info:
                     constraints.validator_info.update(validator_info)
                     has_constraints = True
 
                     # Try to extract min/max from validator info
-                    for validator_data in validator_info.values():
-                        if isinstance(validator_data, dict):
-                            if "min_value" in validator_data:
-                                constraints.min_value = validator_data["min_value"]
-                            if "max_value" in validator_data:
-                                constraints.max_value = validator_data["max_value"]
+                    self._extract_validator_bounds(constraints, validator_info)
 
                 return constraints if has_constraints else None
 
