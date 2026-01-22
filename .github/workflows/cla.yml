@@ -17,17 +17,14 @@ jobs:
     steps:
       - name: "CLA Assistant"
         if: (github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA') || github.event_name == 'pull_request_target'
-        uses: contributor-assistant/github-action@v2.5.2
+        uses: contributor-assistant/github-action@v2.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         with:
           path-to-signatures: "signatures/version1/cla.json"
           path-to-document: "https://github.com/albumentations-team/albu-spec/blob/main/CLA.md"
           branch: "main"
           allowlist: bot*
-          remote-organization-name: "albumentations-team"
-          remote-repository-name: "albu-spec"
           create-file-commit-message: "Creating file for storing CLA Signatures"
           signed-commit-message: "Signed CLA for PR #$pullRequestNo"
           custom-notsigned-prcomment: "Thank you for your submission! Before we can merge your contribution, you need to sign our Contributor License Agreement (CLA).\n\n**How to sign:**\nPlease comment on this PR with:\n```\nI have read the CLA Document and I hereby sign the CLA\n```\n\n**CLA Document:** https://github.com/albumentations-team/albu-spec/blob/main/CLA.md\n\nOnce you comment, the CLA bot will record your signature and update this PR."
