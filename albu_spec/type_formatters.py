@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Annotated, Any, Literal, Protocol, get_args, get_origin
 
-import cv2
+from albu_spec.type_utils import evaluate_string_annotation
 
 
 class TypeHandler(Protocol):
@@ -75,31 +75,16 @@ class StringAnnotationHandler:
         if not isinstance(type_annotation, str):
             return str(type_annotation)
 
-        try:
-            # Create namespace with common imports
-            namespace: dict[str, Any] = {
-                "Literal": Literal,
-                "Union": type(int | str),
-                "Optional": type(int | None),
-                "tuple": tuple,
-                "dict": dict,
-                "list": list,
-                "int": int,
-                "float": float,
-                "str": str,
-                "bool": bool,
-                "cv2": cv2,
-            }
-            # eval is used here for forward references in type annotations
-            # The namespace is restricted to safe type constructs only
-            # This is necessary because typing.get_type_hints() doesn't work
-            # reliably with dynamic classes and Pydantic schemas
-            evaluated = eval(type_annotation, namespace)
-            # Recursively format the evaluated type
-            return formatter.format(evaluated)
-        except (ValueError, NameError, SyntaxError, AttributeError):
-            # If evaluation fails, return string as-is
+        # Use shared evaluation function
+        evaluated = evaluate_string_annotation(type_annotation)
+
+        # If evaluation failed, it returns the string as-is
+        # Don't recursively format in this case to avoid infinite loop
+        if evaluated is type_annotation or isinstance(evaluated, str):
             return str(type_annotation)
+
+        # Recursively format the evaluated type
+        return formatter.format(evaluated)
 
 
 class LiteralTypeHandler:

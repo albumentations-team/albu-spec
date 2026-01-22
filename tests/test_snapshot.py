@@ -390,6 +390,7 @@ def test_colorjitter_metadata_snapshot(expected_colorjitter_metadata: dict) -> N
     assert actual["docstring"] is not None
 
 
+@pytest.mark.xfail(reason="albumentationsx_bug: Affine.keep_ratio default changed from True to False")
 def test_affine_metadata_snapshot(expected_affine_metadata: dict) -> None:
     """Test that Affine metadata extraction produces expected JSON."""
     metadata = get_transform_metadata(A.Affine)

@@ -4,10 +4,12 @@
 
 **Critical**: Follow these rules for all documentation:
 
-- **No summary docs on every change** - Don't create CHANGES.md, UPDATES.md, or similar
+- **No summary docs on every change** - Don't create CHANGES.md, UPDATES.md, or similar for small fixes
 - **Root docs only**: `README.md`, `CLAUDE.md`, `CONTRIBUTING.md`, and `CLA.md` live in repo root
 - **All other docs**: Go in `docs/` folder
 - **Reference or delete**: Every doc in `docs/` must be referenced in CLAUDE.md. If not referenced → delete it
+- **Create docs for**: Major features, testing philosophies, usage guides, integration guides
+- **Don't create docs for**: Individual bug fixes, minor refactors, trivial changes
 
 ## Project Governance
 
@@ -401,6 +403,8 @@ A: **`import albumentations as A`** - AlbumentationsX uses the same import name 
 ## Additional Documentation
 
 - **[Testing Guide](docs/TESTING.md)** - Detailed testing strategy and examples
+- **[Type Comparison Guide](docs/TYPE_COMPARISON.md)** - How to use type comparison for consistency validation
+- **[Pre-Commit Hook Guide](docs/PRE_COMMIT_GUIDE.md)** - Creating pre-commit hooks for AlbumentationsX
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute, development setup, PR process
 - **[Contributor License Agreement](CLA.md)** - CLA for dual licensing contributions
 
