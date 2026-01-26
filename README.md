@@ -12,9 +12,10 @@ values from `__init__` signatures
 (ge, le, gt, lt, etc.)
 - **Validator Introspection**: Extract information from `AfterValidator`
 bounds and custom validators
-- **Docstring Parsing**: Extract parameter descriptions from Google-style docstrings
+- **Structured Docstring Parsing**: Parse Google-style docstrings into structured sections (args, examples, notes, warnings, references, etc.)
 - **Complete Metadata**: Get transform type, supported targets, and module information
 - **Type Safety**: All data returned as typed Pydantic models
+- **JSON Serializable**: Export all metadata as JSON for APIs and databases
 
 ## Installation
 
@@ -189,6 +190,49 @@ if angle_param.constraints and angle_param.constraints.validator_info:
         print(f"  {validator_name}: {validator_data}")
 ```
 
+### Working with Structured Docstrings
+
+```python
+from albu_spec import get_transform_metadata
+import albumentations as A
+
+# Get metadata with parsed docstring
+metadata = get_transform_metadata(A.Blur)
+
+if metadata.docstring_parsed:
+    parsed = metadata.docstring_parsed
+
+    # Short description for preview cards
+    print(f"Description: {parsed.short_description}")
+
+    # Parameters with types and descriptions
+    print("\nParameters:")
+    for arg in parsed.args:
+        print(f"  {arg.name} ({arg.type}): {arg.description}")
+
+    # Code examples
+    if parsed.examples:
+        print(f"\nFound {len(parsed.examples)} example(s)")
+        print("First example:")
+        print(parsed.examples[0][:200] + "...")
+
+    # Additional sections
+    if parsed.notes:
+        print(f"\nNotes: {parsed.notes}")
+
+    if parsed.warnings:
+        print(f"\nWarnings: {parsed.warnings}")
+
+    if parsed.references:
+        print(f"\nReferences: {parsed.references}")
+
+    # Extra sections (Image types, Targets, Mathematical Formulation, etc.)
+    if parsed.extra_sections:
+        print("\nExtra sections:")
+        for section_name, section_content in parsed.extra_sections.items():
+            print(f"  {section_name}: {section_content[:100]}...")
+```
+
 ### Export to JSON
 
 ```python
@@ -244,8 +288,9 @@ class TransformMetadata(BaseModel):
     transform_type: Literal["image_only", "dual", "transforms_3d", "unknown"]
     targets: list[str]  # Supported targets
     parameters: dict[str, ParameterMetadata]  # Parameter metadata
-    docstring: str | None  # Complete docstring
+    docstring: str | None  # Complete docstring (raw)
     docstring_short: str | None  # Short description
+    docstring_parsed: ParsedDocstring | None  # Structured parsed docstring
     has_init_schema: bool  # Whether InitSchema exists
 ```
 
@@ -282,6 +327,32 @@ class ConstraintInfo(BaseModel):
     validator_info: dict[str, Any]  # Additional validator info
 ```
 
+### ParsedDocstring
+
+Structured parsed docstring with all sections:
+
+```python
+class ParsedDocstring(BaseModel):
+    short_description: str | None  # First paragraph
+    long_description: str | None  # Extended description
+    args: list[DocstringArg]  # Parsed arguments
+    returns: DocstringReturn | None  # Return value info
+    raises: list[DocstringRaises]  # Exceptions
+    yields: DocstringReturn | None  # Yield info (generators)
+    examples: list[str]  # Code examples
+    notes: str | None  # Additional notes
+    warnings: str | None  # User warnings
+    see_also: str | None  # Related items
+    references: str | None  # Citations/links
+    attributes: list[DocstringArg]  # Class attributes
+    extra_sections: dict[str, Any]  # All other sections (Image types, Targets, etc.)
+```
+
+**Note**: `extra_sections` captures ALL docstring sections not explicitly handled above.
+AlbumentationsX transforms use 90+ custom section names like "Image types", "Targets",
+"Mathematical Formulation", "Number of channels", etc. These are automatically captured
+in `extra_sections` dict, making the parser future-proof for any new sections.
+
 ### TransformCollection
 
 Collection of transforms grouped by type:
@@ -314,16 +385,27 @@ collection = get_all_transforms_metadata()
 
 for transform in collection.image_only:
     print(f"## {transform.name}\n")
-    print(f"{transform.docstring_short}\n")
-    print("### Parameters\n")
 
-    for param_name, param in transform.parameters.items():
-        print(f"- **{param_name}** (`{param.type_hint}`)")
-        if param.default is not None:
-            print(f"  - Default: `{param.default}`")
-        if param.description:
-            print(f"  - {param.description}")
-        print()
+    if transform.docstring_parsed:
+        # Use structured docstring
+        parsed = transform.docstring_parsed
+        print(f"{parsed.short_description}\n")
+
+        print("### Parameters\n")
+        for arg in parsed.args:
+            print(f"- **{arg.name}** (`{arg.type}`)")
+            if arg.description:
+                print(f"  - {arg.description}")
+
+        # Include examples if available
+        if parsed.examples:
+            print("\n### Examples\n")
+            for example in parsed.examples:
+                print(f"```python\n{example}\n```\n")
+
+        # Include notes if available
+        if parsed.notes:
+            print(f"\n### Notes\n\n{parsed.notes}\n")
 ```
 
 ### UI Generation
@@ -346,6 +428,49 @@ for param_name, param in metadata.parameters.items():
     elif isinstance(param.type_hint, list):
         # Create dropdown for Literal types
         print(f"Dropdown for {param_name}: options={param.type_hint}")
+```
+
+### Website/Documentation Backend
+
+Generate structured data for documentation websites:
+
+```python
+from albu_spec import get_transform_metadata
+import albumentations as A
+import json
+
+metadata = get_transform_metadata(A.Blur)
+
+# Create structured data for website rendering
+doc_data = {
+    "name": metadata.name,
+    "type": metadata.transform_type,
+    "description": metadata.docstring_parsed.short_description if metadata.docstring_parsed else "",
+    "parameters": [],
+    "examples": [],
+    "notes": None,
+}
+
+if metadata.docstring_parsed:
+    parsed = metadata.docstring_parsed
+
+    # Parameter table data
+    for arg in parsed.args:
+        doc_data["parameters"].append({
+            "name": arg.name,
+            "type": arg.type,
+            "description": arg.description,
+            "default": metadata.parameters[arg.name].default if arg.name in metadata.parameters else None,
+        })
+
+    # Code examples
+    doc_data["examples"] = [{"language": "python", "code": ex} for ex in parsed.examples]
+
+    # Notes/warnings
+    doc_data["notes"] = parsed.notes
+
+# Export as JSON
+print(json.dumps(doc_data, indent=2))
 ```
 
 ### Validation Testing

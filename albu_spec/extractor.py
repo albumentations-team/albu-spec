@@ -59,6 +59,7 @@ class TransformMetadataExtractor:
         # Get docstring information
         docstring = transform_class.__doc__
         docstring_short = self.docstring_parser.get_short_description(transform_class)
+        docstring_parsed = self.docstring_parser.parse_full_docstring(transform_class)
         param_descriptions = self.docstring_parser.parse_docstring(transform_class)
 
         # Get schema constraints
@@ -88,6 +89,7 @@ class TransformMetadataExtractor:
             parameters=parameters,
             docstring=docstring,
             docstring_short=docstring_short,
+            docstring_parsed=docstring_parsed,
             has_init_schema=has_init_schema,
         )
 
