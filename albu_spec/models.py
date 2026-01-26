@@ -5,6 +5,83 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
+class DocstringArg(BaseModel):
+    """Parsed argument from docstring Args section.
+
+    Attributes:
+        name: Parameter name
+        type: Type annotation string (if present in docstring)
+        description: Parameter description
+
+    """
+
+    name: str
+    type: str | None = None
+    description: str | None = None
+
+
+class DocstringReturn(BaseModel):
+    """Parsed return information from docstring Returns section.
+
+    Attributes:
+        type: Return type annotation string (if present)
+        description: Return value description
+
+    """
+
+    type: str | None = None
+    description: str | None = None
+
+
+class DocstringRaises(BaseModel):
+    """Parsed exception from docstring Raises section.
+
+    Attributes:
+        type: Exception type name
+        description: When/why this exception is raised
+
+    """
+
+    type: str
+    description: str | None = None
+
+
+class ParsedDocstring(BaseModel):
+    """Structured parsed docstring from google-docstring-parser.
+
+    Attributes:
+        short_description: First paragraph/sentence
+        long_description: Extended description
+        args: List of parsed arguments
+        returns: Return value information
+        raises: List of exceptions that may be raised
+        yields: Yield information (for generators)
+        examples: Code examples from Examples section
+        notes: Additional notes
+        warnings: Warnings for users
+        see_also: Related functions/classes
+        references: Citations or links
+        attributes: Class attributes (for class docstrings)
+        extra_sections: Dictionary of all other sections found in docstring
+                       (e.g., "Image types", "Targets", "Mathematical Formulation", etc.)
+
+    """
+
+    short_description: str | None = None
+    long_description: str | None = None
+    args: list[DocstringArg] = Field(default_factory=list)
+    returns: DocstringReturn | None = None
+    raises: list[DocstringRaises] = Field(default_factory=list)
+    yields: DocstringReturn | None = None
+    examples: list[str] = Field(default_factory=list)
+    notes: str | None = None
+    warnings: str | None = None
+    see_also: str | None = None
+    references: str | None = None
+    attributes: list[DocstringArg] = Field(default_factory=list)
+    extra_sections: dict[str, Any] = Field(default_factory=dict)
+
+
 class ConstraintInfo(BaseModel):
     """Information about parameter constraints from Pydantic Field and validators.
 
@@ -67,8 +144,9 @@ class TransformMetadata(BaseModel):
         transform_type: Type of transform (image_only, dual, transforms_3d)
         targets: List of supported targets (image, mask, bboxes, keypoints, etc.)
         parameters: Dictionary of parameter metadata keyed by parameter name
-        docstring: Complete docstring text
+        docstring: Complete docstring text (raw)
         docstring_short: Short description from docstring
+        docstring_parsed: Structured parsed docstring with all sections
         has_init_schema: Whether the transform has an InitSchema
 
     """
@@ -80,6 +158,7 @@ class TransformMetadata(BaseModel):
     parameters: dict[str, ParameterMetadata]
     docstring: str | None = None
     docstring_short: str | None = None
+    docstring_parsed: ParsedDocstring | None = None
     has_init_schema: bool = False
 
 

@@ -5,11 +5,20 @@ Extract comprehensive metadata from Albumentations transforms including:
 - Pydantic Field constraints (ge, le, gt, lt, etc.)
 - AfterValidator bounds and custom validators
 - Parameter descriptions from docstrings
+- Structured parsed docstrings with args, examples, notes, etc.
 - Type extraction and comparison utilities
 """
 
 from albu_spec.extractor import get_all_transforms_metadata, get_transform_metadata
-from albu_spec.models import ConstraintInfo, ParameterMetadata, TransformMetadata
+from albu_spec.models import (
+    ConstraintInfo,
+    DocstringArg,
+    DocstringRaises,
+    DocstringReturn,
+    ParameterMetadata,
+    ParsedDocstring,
+    TransformMetadata,
+)
 from albu_spec.type_comparison import TypeMismatch, compare_types, get_type_mismatch
 from albu_spec.type_extraction import (
     get_common_param_names,
@@ -19,7 +28,11 @@ from albu_spec.type_extraction import (
 
 __all__ = [
     "ConstraintInfo",
+    "DocstringArg",
+    "DocstringRaises",
+    "DocstringReturn",
     "ParameterMetadata",
+    "ParsedDocstring",
     "TransformMetadata",
     "TypeMismatch",
     "compare_types",
