@@ -35,6 +35,7 @@
 - Pydantic constraints (ge, le, gt, lt, validators)
 - Transform classification (image_only, dual, transforms_3d)
 - Supported targets (image, mask, bboxes, keypoints, etc.)
+- Supported bounding box types (HBB, OBB) for dual transforms
 
 ### Target Library
 - **AlbumentationsX**: Next-generation image augmentation library
@@ -97,6 +98,10 @@ graph TD
 3. **Docstrings** (Google style)
    - Short description
    - Parameter descriptions from Args section
+
+4. **Class Attributes**
+   - `_supported_bbox_types`: Bounding box type support (HBB, OBB) for dual transforms
+   - `_targets`: List of supported targets
 
 ## Testing Philosophy
 

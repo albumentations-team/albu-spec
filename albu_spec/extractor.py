@@ -55,6 +55,7 @@ class TransformMetadataExtractor:
         transform_type = self._get_transform_type(transform_class)
         targets = self._get_targets(transform_class)
         has_init_schema = hasattr(transform_class, "InitSchema")
+        supported_bbox_types = self._get_supported_bbox_types(transform_class)
 
         # Get docstring information
         docstring = transform_class.__doc__
@@ -91,6 +92,7 @@ class TransformMetadataExtractor:
             docstring_short=docstring_short,
             docstring_parsed=docstring_parsed,
             has_init_schema=has_init_schema,
+            supported_bbox_types=supported_bbox_types,
         )
 
     def _extract_parameters(
@@ -284,6 +286,42 @@ class TransformMetadataExtractor:
                         targets.append(target_str.lower())
 
         return targets
+
+    def _get_supported_bbox_types(self, transform_class: type) -> list[str] | None:
+        """Get supported bounding box types for dual transforms.
+
+        Args:
+            transform_class: Transform class to analyze
+
+        Returns:
+            List of supported bbox types (e.g., ['hbb', 'obb']) or None if not applicable
+
+        """
+        # Only dual transforms have bbox support
+        try:
+            if not issubclass(transform_class, A.DualTransform):
+                return None
+        except (TypeError, AttributeError):
+            return None
+
+        # Check class attribute first
+        if hasattr(transform_class, "_supported_bbox_types"):
+            bbox_types = transform_class._supported_bbox_types
+            if isinstance(bbox_types, (frozenset, set, list, tuple)):
+                return sorted(bbox_types)
+
+        # Try instance attribute (some transforms may set it in __init__)
+        try:
+            instance = transform_class()
+            if hasattr(instance, "_supported_bbox_types"):
+                bbox_types = instance._supported_bbox_types
+                if isinstance(bbox_types, (frozenset, set, list, tuple)):
+                    return sorted(bbox_types)
+        except (ValueError, TypeError, AttributeError):
+            # If instantiation fails, that's ok - attribute may not exist yet
+            pass
+
+        return None
 
     def get_all_transforms_metadata(self) -> TransformCollection:
         """Extract metadata for all Albumentations transforms.

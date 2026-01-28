@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "albu-spec"
-version = "0.0.3"
+version = "0.0.4"
 description = "Extract comprehensive metadata from Albumentations transforms including parameters, types, constraints, and docstrings"
 authors = [
     {name = "Vladimir Iglovikov", email = "vladimir@albumentations.ai"}
@@ -42,7 +42,7 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.1.0",
     "mypy>=1.0",
-    "albumentationsx",
+    "albumentationsx>=2.0.15",
 ]
 
 [project.urls]
