@@ -304,24 +304,38 @@ class TransformMetadataExtractor:
         except (TypeError, AttributeError):
             return None
 
+        bbox_types_raw = self._get_bbox_types_raw(transform_class)
+        return self._process_bbox_types(bbox_types_raw) if bbox_types_raw is not None else None
+
+    def _get_bbox_types_raw(self, transform_class: type) -> Any:
+        """Get raw bbox types from class or instance attribute."""
         # Check class attribute first
         if hasattr(transform_class, "_supported_bbox_types"):
-            bbox_types = transform_class._supported_bbox_types
-            if isinstance(bbox_types, (frozenset, set, list, tuple)):
-                return sorted(bbox_types)
+            return transform_class._supported_bbox_types
 
-        # Try instance attribute (some transforms may set it in __init__)
+        # Try instance attribute if class attribute not found
         try:
             instance = transform_class()
             if hasattr(instance, "_supported_bbox_types"):
-                bbox_types = instance._supported_bbox_types
-                if isinstance(bbox_types, (frozenset, set, list, tuple)):
-                    return sorted(bbox_types)
+                return instance._supported_bbox_types
         except (ValueError, TypeError, AttributeError):
             # If instantiation fails, that's ok - attribute may not exist yet
             pass
 
         return None
+
+    def _process_bbox_types(self, bbox_types_raw: Any) -> list[str] | None:
+        """Process raw bbox types into normalized list."""
+        if not isinstance(bbox_types_raw, (frozenset, set, list, tuple)):
+            return None
+
+        bbox_types: list[str] = []
+        for bbox_type in bbox_types_raw:
+            # Extract enum value if it's an enum, otherwise use as-is
+            bbox_type_str = getattr(bbox_type, "value", bbox_type)
+            if isinstance(bbox_type_str, str):
+                bbox_types.append(bbox_type_str.lower())
+        return sorted(bbox_types) if bbox_types else None
 
     def get_all_transforms_metadata(self) -> TransformCollection:
         """Extract metadata for all Albumentations transforms.
