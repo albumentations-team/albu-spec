@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
 import albumentations as A
+from pydantic import ValidationError
 
 from albu_spec.docstring_parser import DocstringParser
 from albu_spec.models import ConstraintInfo, ParameterMetadata, TransformCollection, TransformMetadata
@@ -55,6 +56,7 @@ class TransformMetadataExtractor:
         transform_type = self._get_transform_type(transform_class)
         targets = self._get_targets(transform_class)
         has_init_schema = hasattr(transform_class, "InitSchema")
+        supported_bbox_types = self._get_supported_bbox_types(transform_class)
 
         # Get docstring information
         docstring = transform_class.__doc__
@@ -91,6 +93,7 @@ class TransformMetadataExtractor:
             docstring_short=docstring_short,
             docstring_parsed=docstring_parsed,
             has_init_schema=has_init_schema,
+            supported_bbox_types=supported_bbox_types,
         )
 
     def _extract_parameters(
@@ -284,6 +287,56 @@ class TransformMetadataExtractor:
                         targets.append(target_str.lower())
 
         return targets
+
+    def _get_supported_bbox_types(self, transform_class: type) -> list[str] | None:
+        """Get supported bounding box types for dual transforms.
+
+        Args:
+            transform_class: Transform class to analyze
+
+        Returns:
+            List of supported bbox types (e.g., ['hbb', 'obb']) or None if not applicable
+
+        """
+        # Only dual transforms have bbox support
+        try:
+            if not issubclass(transform_class, A.DualTransform):
+                return None
+        except (TypeError, AttributeError):
+            return None
+
+        bbox_types_raw = self._get_bbox_types_raw(transform_class)
+        return self._process_bbox_types(bbox_types_raw) if bbox_types_raw is not None else None
+
+    def _get_bbox_types_raw(self, transform_class: type) -> Any:
+        """Get raw bbox types from class or instance attribute."""
+        # Check class attribute first
+        if hasattr(transform_class, "_supported_bbox_types"):
+            return transform_class._supported_bbox_types
+
+        # Try instance attribute if class attribute not found
+        try:
+            instance = transform_class()
+            if hasattr(instance, "_supported_bbox_types"):
+                return instance._supported_bbox_types
+        except (ValueError, TypeError, AttributeError, ValidationError):
+            # If instantiation fails, that's ok - attribute may not exist yet
+            pass
+
+        return None
+
+    def _process_bbox_types(self, bbox_types_raw: Any) -> list[str] | None:
+        """Process raw bbox types into normalized list."""
+        if not isinstance(bbox_types_raw, (frozenset, set, list, tuple)):
+            return None
+
+        bbox_types: list[str] = []
+        for bbox_type in bbox_types_raw:
+            # Extract enum value if it's an enum, otherwise use as-is
+            bbox_type_str = getattr(bbox_type, "value", bbox_type)
+            if isinstance(bbox_type_str, str):
+                bbox_types.append(bbox_type_str.lower())
+        return sorted(bbox_types) if bbox_types else None
 
     def get_all_transforms_metadata(self) -> TransformCollection:
         """Extract metadata for all Albumentations transforms.

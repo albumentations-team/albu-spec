@@ -14,6 +14,7 @@ values from `__init__` signatures
 bounds and custom validators
 - **Structured Docstring Parsing**: Parse Google-style docstrings into structured sections (args, examples, notes, warnings, references, etc.)
 - **Complete Metadata**: Get transform type, supported targets, and module information
+- **BBox Type Support**: Extract supported bounding box types (HBB, OBB) for dual transforms
 - **Type Safety**: All data returned as typed Pydantic models
 - **JSON Serializable**: Export all metadata as JSON for APIs and databases
 
@@ -46,6 +47,7 @@ print(f"Type: {metadata.transform_type}")
 print(f"Module: {metadata.module}")
 print(f"Targets: {metadata.targets}")
 print(f"Has InitSchema: {metadata.has_init_schema}")
+print(f"Supported BBox Types: {metadata.supported_bbox_types}")
 ```
 
 **Output:**
@@ -56,6 +58,7 @@ Type: dual
 Module: albumentations.augmentations.geometric.transforms
 Targets: ['image', 'mask', 'bboxes', 'keypoints', 'volume', 'mask3d']
 Has InitSchema: True
+Supported BBox Types: ['hbb', 'obb']
 ```
 
 **Full metadata as JSON:**
@@ -145,6 +148,32 @@ print(f"3D transforms: {len(collection.transforms_3d)}")
 # Iterate through all transforms
 for transform in collection.get_all():
     print(f"{transform.name} ({transform.transform_type})")
+```
+
+### Check Bounding Box Type Support
+
+```python
+from albu_spec import get_transform_metadata
+import albumentations as A
+
+# Check which bbox types a transform supports
+transforms_to_check = [A.Affine, A.Rotate, A.CenterCrop, A.ColorJitter]
+
+for transform_class in transforms_to_check:
+    metadata = get_transform_metadata(transform_class)
+    if metadata.supported_bbox_types:
+        print(f"{metadata.name}: {metadata.supported_bbox_types}")
+    else:
+        print(f"{metadata.name}: No bbox support (not a dual transform)")
+```
+
+**Output:**
+
+```
+Affine: ['hbb', 'obb']
+Rotate: ['hbb', 'obb']
+CenterCrop: ['hbb']
+ColorJitter: No bbox support (not a dual transform)
 ```
 
 ## Detailed Examples
@@ -273,6 +302,16 @@ transforms_with_bboxes = [
 ]
 
 print(f"Transforms supporting bboxes: {len(transforms_with_bboxes)}")
+
+# Find transforms that support OBB (oriented bounding boxes)
+transforms_with_obb = [
+    t for t in collection.dual
+    if t.supported_bbox_types and "obb" in t.supported_bbox_types
+]
+
+print(f"Transforms supporting OBB: {len(transforms_with_obb)}")
+for t in transforms_with_obb[:5]:
+    print(f"  - {t.name}: {t.supported_bbox_types}")
 ```
 
 ## Data Models
@@ -292,6 +331,7 @@ class TransformMetadata(BaseModel):
     docstring_short: str | None  # Short description
     docstring_parsed: ParsedDocstring | None  # Structured parsed docstring
     has_init_schema: bool  # Whether InitSchema exists
+    supported_bbox_types: list[str] | None  # Supported bbox types (hbb, obb) for dual transforms
 ```
 
 ### ParameterMetadata

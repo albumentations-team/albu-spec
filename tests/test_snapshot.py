@@ -218,7 +218,7 @@ def expected_affine_metadata() -> dict:
             },
             "translate_px": {
                 "name": "translate_px",
-                "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]] | None",
+                "type_hint": "tuple[int, int] | int | dict[str, int | tuple[int, int]] | None",
                 "default": None,
                 "description_prefix": "Translation in pixels.",
                 "constraints": None,
@@ -295,8 +295,8 @@ def expected_affine_metadata() -> dict:
             },
             "fill_mask": {
                 "name": "fill_mask",
-                "type_hint": "tuple[float, ...] | float",
-                "default": 0,
+                "type_hint": "tuple[float, ...] | float | None",
+                "default": None,
                 "description": "Same as fill but only for masks.",
                 "constraints": None,
             },
@@ -390,7 +390,6 @@ def test_colorjitter_metadata_snapshot(expected_colorjitter_metadata: dict) -> N
     assert actual["docstring"] is not None
 
 
-@pytest.mark.xfail(reason="albumentationsx_bug: Affine.keep_ratio default changed from True to False")
 def test_affine_metadata_snapshot(expected_affine_metadata: dict) -> None:
     """Test that Affine metadata extraction produces expected JSON."""
     metadata = get_transform_metadata(A.Affine)

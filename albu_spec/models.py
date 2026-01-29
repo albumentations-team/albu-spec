@@ -148,6 +148,7 @@ class TransformMetadata(BaseModel):
         docstring_short: Short description from docstring
         docstring_parsed: Structured parsed docstring with all sections
         has_init_schema: Whether the transform has an InitSchema
+        supported_bbox_types: Set of supported bounding box types (hbb, obb) for dual transforms
 
     """
 
@@ -160,6 +161,7 @@ class TransformMetadata(BaseModel):
     docstring_short: str | None = None
     docstring_parsed: ParsedDocstring | None = None
     has_init_schema: bool = False
+    supported_bbox_types: list[str] | None = None
 
 
 class TransformCollection(BaseModel):
