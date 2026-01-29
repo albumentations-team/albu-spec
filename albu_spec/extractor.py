@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
 import albumentations as A
+from pydantic import ValidationError
 
 from albu_spec.docstring_parser import DocstringParser
 from albu_spec.models import ConstraintInfo, ParameterMetadata, TransformCollection, TransformMetadata
@@ -318,7 +319,7 @@ class TransformMetadataExtractor:
             instance = transform_class()
             if hasattr(instance, "_supported_bbox_types"):
                 return instance._supported_bbox_types
-        except (ValueError, TypeError, AttributeError):
+        except (ValueError, TypeError, AttributeError, ValidationError):
             # If instantiation fails, that's ok - attribute may not exist yet
             pass
 
