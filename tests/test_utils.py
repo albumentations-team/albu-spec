@@ -56,7 +56,7 @@ def get_init_params(transform_class: type) -> set[str]:
     """
     try:
         sig = inspect.signature(transform_class.__init__)
-        return {name for name in sig.parameters.keys() if name not in {"self"}}
+        return {name for name in sig.parameters.keys() if name != "self"}
     except (ValueError, TypeError):
         return set()
 
