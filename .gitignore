@@ -66,3 +66,5 @@ transforms_metadata.json
 *.log
 
 .venv/
+
+uv.lock

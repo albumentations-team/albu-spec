@@ -185,7 +185,30 @@ class LiteralTypeHandler:
     def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:  # noqa: ARG002
         """Format Literal type - preserve original types."""
         args = get_args(type_annotation)
-        return list(args)
+        values = [v.__name__ if isinstance(v, type) else v for v in args]
+        return list(dict.fromkeys(values))
+
+
+def _flatten_formatted_types(formatted_types: list[str | list[Any]]) -> list[str]:
+    """Flatten formatted union parts to strings; handles nested lists from Literal."""
+    result: list[str] = []
+    for t in formatted_types:
+        if isinstance(t, list):
+            result.extend(item.__name__ if isinstance(item, type) else str(item) for item in t)
+        else:
+            result.append(t.__name__ if isinstance(t, type) else str(t))
+    return result
+
+
+def _collect_literal_values(args: tuple[Any, ...]) -> list[Any]:
+    """Collect all Literal values plus None for type(None); no raw type objects."""
+    values: list[Any] = []
+    for arg in args:
+        if get_origin(arg) is Literal:
+            values.extend(val.__name__ if isinstance(val, type) else val for val in get_args(arg))
+        else:
+            values.append(None)  # Must be type(None)
+    return values
 
 
 class UnionTypeHandler:
@@ -199,17 +222,29 @@ class UnionTypeHandler:
         return bool(origin and "Union" in str(origin))
 
     def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
-        """Format Union type."""
+        """Format Union type.
+
+        If the Union contains a Literal, return a list of all possible values.
+        Otherwise, return a string representation.
+        """
         args = get_args(type_annotation)
+        has_literal = any(get_origin(arg) is Literal for arg in args)
+
+        if has_literal:
+            has_unbounded = any(get_origin(arg) is not Literal and arg is not type(None) for arg in args)
+            if has_unbounded:
+                formatted = [formatter.format(arg) for arg in args]
+                return " | ".join(_flatten_formatted_types(formatted))
+            return list(dict.fromkeys(_collect_literal_values(args)))
+
         formatted_types = [formatter.format(arg) for arg in args]
-        # Flatten any nested lists
-        flat_types: list[str] = []
+        flat: list[str] = []
         for t in formatted_types:
             if isinstance(t, list):
-                flat_types.extend(str(item) for item in t)
+                flat.extend(str(item) for item in t)
             else:
-                flat_types.append(str(t))
-        return " | ".join(flat_types)
+                flat.append(str(t))
+        return " | ".join(flat)
 
 
 class TupleTypeHandler:
