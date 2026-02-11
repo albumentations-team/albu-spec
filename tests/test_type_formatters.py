@@ -200,6 +200,30 @@ class TestUnionTypeHandler:
         parts = set(result.split(" | "))
         assert parts == {"int", "float", "str", "None"}
 
+    def test_format_literal_union_none(self):
+        """Test that Union with Literal returns a list of values."""
+        handler = UnionTypeHandler()
+        formatter = TypeFormatter()
+        result = handler.format(Literal["image", "mask"] | None, formatter)
+        assert isinstance(result, list)
+        assert set(result) == {"image", "mask", None}
+
+    def test_format_literal_union_int_none(self):
+        """Test that Union with Literal[int] returns a list of int values."""
+        handler = UnionTypeHandler()
+        formatter = TypeFormatter()
+        result = handler.format(Literal[0, 1, 2] | None, formatter)
+        assert isinstance(result, list)
+        assert set(result) == {0, 1, 2, None}
+
+    def test_format_regular_union_stays_string(self):
+        """Test that regular Union without Literal stays as string."""
+        handler = UnionTypeHandler()
+        formatter = TypeFormatter()
+        result = handler.format(tuple[int, int] | int, formatter)
+        assert isinstance(result, str)
+        assert result in ("tuple[int, int] | int", "int | tuple[int, int]")
+
 
 class TestTupleTypeHandler:
     """Tests for TupleTypeHandler."""
@@ -492,3 +516,32 @@ class TestTypeFormatterIntegration:
         # DefaultHandler should be last, so specific handlers take precedence
         assert formatter.format(int) == "int"  # BasicTypeHandler, not DefaultTypeHandler
         assert formatter.format(None) == "None"  # NoneTypeHandler, not DefaultTypeHandler
+
+    def test_format_literal_union_none(self):
+        """Test that Literal | None returns list of values including None."""
+        formatter = TypeFormatter()
+        result = formatter.format(Literal["image", "mask"] | None)
+        assert isinstance(result, list)
+        assert set(result) == {"image", "mask", None}
+
+    def test_format_literal_int_union_none(self):
+        """Test that Literal[int] | None returns list of int values."""
+        formatter = TypeFormatter()
+        result = formatter.format(Literal[0, 1, 2, 3, 4] | None)
+        assert isinstance(result, list)
+        assert set(result) == {0, 1, 2, 3, 4, None}
+
+    def test_format_regular_union_no_literal(self):
+        """Test that regular Union without Literal stays as string."""
+        formatter = TypeFormatter()
+        result = formatter.format(tuple[int, int] | int)
+        assert isinstance(result, str)
+        # Order may vary
+        assert result in ("tuple[int, int] | int", "int | tuple[int, int]")
+
+    def test_format_standalone_literal(self):
+        """Test that standalone Literal returns list of values."""
+        formatter = TypeFormatter()
+        result = formatter.format(Literal["center", "top_left", "bottom_right"])
+        assert isinstance(result, list)
+        assert set(result) == {"center", "top_left", "bottom_right"}

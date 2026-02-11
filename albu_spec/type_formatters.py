@@ -199,10 +199,31 @@ class UnionTypeHandler:
         return bool(origin and "Union" in str(origin))
 
     def format(self, type_annotation: object, formatter: TypeFormatter) -> str | list[Any]:
-        """Format Union type."""
+        """Format Union type.
+
+        If the Union contains a Literal, return a list of all possible values.
+        Otherwise, return a string representation.
+        """
         args = get_args(type_annotation)
+
+        # Check if any arg is a Literal
+        has_literal = any(get_origin(arg) is Literal for arg in args)
+
+        if has_literal:
+            # Collect all possible values as a list
+            values: list[Any] = []
+            for arg in args:
+                if get_origin(arg) is Literal:
+                    # Extract literal values
+                    values.extend(get_args(arg))
+                else:
+                    # For non-literal types in the union (like None), add them directly
+                    values.append(None if arg is type(None) else arg)
+            return values
+
+        # No literal - format as regular union string
         formatted_types = [formatter.format(arg) for arg in args]
-        # Flatten any nested lists
+        # Flatten any nested lists (shouldn't happen without Literal, but be safe)
         flat_types: list[str] = []
         for t in formatted_types:
             if isinstance(t, list):

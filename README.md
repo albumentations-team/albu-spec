@@ -39,8 +39,8 @@ pip install albumentationsx
 import albumentations as A
 from albu_spec import get_transform_metadata
 
-# Get metadata for Affine transform
-metadata = get_transform_metadata(A.Affine)
+# Get metadata for RandomCrop transform
+metadata = get_transform_metadata(A.RandomCrop)
 
 print(f"Transform: {metadata.name}")
 print(f"Type: {metadata.transform_type}")
@@ -53,72 +53,74 @@ print(f"Supported BBox Types: {metadata.supported_bbox_types}")
 **Output:**
 
 ```
-Transform: Affine
+Transform: RandomCrop
 Type: dual
-Module: albumentations.augmentations.geometric.transforms
+Module: albumentations.augmentations.crops.transforms
 Targets: ['image', 'mask', 'bboxes', 'keypoints', 'volume', 'mask3d']
 Has InitSchema: True
 Supported BBox Types: ['hbb', 'obb']
 ```
 
-**Full metadata as JSON:**
+**Full metadata as JSON (showing key parameters):**
 
 ```json
 {
-  "name": "Affine",
-  "module": "albumentations.augmentations.geometric.transforms",
+  "name": "RandomCrop",
+  "module": "albumentations.augmentations.crops.transforms",
   "transform_type": "dual",
   "targets": ["image", "mask", "bboxes", "keypoints", "volume", "mask3d"],
   "parameters": {
-    "scale": {
-      "name": "scale",
-      "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]]",
-      "default": [1.0, 1.0],
-      "description": "Scaling factor to use, where ``1.0`` denotes \"no change\" and ``0.5`` is zoomed out to ``50`` percent of the original size...",
+    "height": {
+      "name": "height",
+      "type_hint": "int",
+      "default": null,
+      "description": "height of the crop.",
+      "constraints": {
+        "ge": 1.0,
+        "le": null,
+        ...
+      }
+    },
+    "pad_position": {
+      "name": "pad_position",
+      "type_hint": ["center", "top_left", "top_right", "bottom_left", "bottom_right", "random"],
+      "default": "center",
+      "description": "Position of padding. Default: 'center'.",
       "constraints": null
     },
-    "rotate": {
-      "name": "rotate",
-      "type_hint": "tuple[float, float] | float",
-      "default": 0.0,
-      "description": "Rotation in degrees (**NOT** radians), i.e. expected value range is around ``[-360, 360]``...",
-      "constraints": null
-    },
-    "interpolation": {
-      "name": "interpolation",
+    "border_mode": {
+      "name": "border_mode",
       "type_hint": [0, 1, 2, 3, 4],
-      "default": 1,
-      "description": "OpenCV interpolation flag.",
+      "default": 0,
+      "description": "OpenCV border mode used for padding. Default: cv2.BORDER_CONSTANT.",
+      "constraints": null
+    },
+    "fill": {
+      "name": "fill",
+      "type_hint": "tuple[float, ...] | float",
+      "default": 0.0,
+      "description": "Padding value for images if border_mode is cv2.BORDER_CONSTANT. Default: 0.",
       "constraints": null
     },
     "p": {
       "name": "p",
       "type_hint": "float",
-      "default": 0.5,
-      "description": "probability of applying the transform. Default: 0.5.",
+      "default": 1.0,
+      "description": "Probability of applying the transform. Default: 1.0.",
       "constraints": {
         "ge": 0.0,
         "le": 1.0,
-        "gt": null,
-        "lt": null,
-        "min_length": null,
-        "max_length": null,
-        "multiple_of": null,
-        "min_value": null,
-        "max_value": null,
-        "pattern": null,
-        "validators": [],
-        "validator_info": {}
+        ...
       }
     }
   },
-  "docstring": "Augmentation to apply affine transformations to images...",
-  "docstring_short": "Augmentation to apply affine transformations to images.",
-  "has_init_schema": true
+  "docstring_short": "Crop a random part of the input.",
+  "has_init_schema": true,
+  "supported_bbox_types": ["hbb", "obb"]
 }
 ```
 
-*(Note: Some parameters omitted for brevity)*
+**Note:** `pad_position` and `border_mode` return **lists** (perfect for dropdowns), while `fill` returns a **string** (union type).
 
 ### Inspect Individual Parameters
 
@@ -341,11 +343,18 @@ Metadata for a single parameter:
 ```python
 class ParameterMetadata(BaseModel):
     name: str  # Parameter name
-    type_hint: str | list[str]  # Type annotation
+    type_hint: str | list[Any]  # Type annotation string OR list of Literal values
     default: Any  # Default value
     description: str | None  # Description from docstring
     constraints: ConstraintInfo | None  # Pydantic constraints
 ```
+
+**Notes on `type_hint`:**
+- **String format**: Regular types like `"int"`, `"float"`, or unions like `"tuple[int, int] | int"`
+- **List format**: Literal types return actual values, e.g., `["image", "mask", None]` or `[0, 1, 2, 3, 4]`
+  - Perfect for rendering dropdowns in UIs
+  - Preserves original types (int, str, None, etc.)
+  - When a Union contains a Literal, all possible values are returned as a list including None
 
 ### ConstraintInfo
 
@@ -456,18 +465,23 @@ Build dynamic UIs for transform configuration:
 from albu_spec import get_transform_metadata
 import albumentations as A
 
-metadata = get_transform_metadata(A.Blur)
+metadata = get_transform_metadata(A.RandomCrop)
 
 # Generate UI controls based on parameter types and constraints
 for param_name, param in metadata.parameters.items():
-    if param.type_hint == "int" and param.constraints:
+    if isinstance(param.type_hint, list):
+        # Literal type - create dropdown with exact values
+        print(f"Dropdown for {param_name}: options={param.type_hint}")
+        # Example: pad_position -> ['center', 'top_left', 'top_right', 'bottom_left', 'bottom_right', 'random']
+    elif param.type_hint == "int" and param.constraints:
         # Create slider with min/max from constraints
         min_val = param.constraints.ge or param.constraints.gt or 0
         max_val = param.constraints.le or param.constraints.lt or 100
         print(f"Slider for {param_name}: range({min_val}, {max_val})")
-    elif isinstance(param.type_hint, list):
-        # Create dropdown for Literal types
-        print(f"Dropdown for {param_name}: options={param.type_hint}")
+    elif "|" in param.type_hint:
+        # Union type - render custom input (not dropdown)
+        print(f"Union input for {param_name}: {param.type_hint}")
+        # Example: fill -> "tuple[float, ...] | float"
 ```
 
 ### Website/Documentation Backend
