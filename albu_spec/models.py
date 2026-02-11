@@ -121,9 +121,9 @@ class ParameterMetadata(BaseModel):
     Attributes:
         name: Parameter name
         type_hint: Type annotation as string (e.g., "int", "tuple[int, int] | int")
-                   or list of values for Literal types (e.g., [0, 1, 2] or ["a", "b", None]).
-                   When a Union contains a Literal, all possible values are returned as a list,
-                   including None if present. Regular unions without Literal remain as strings.
+                   or list of concrete values for Literal-based types (e.g., [0, 1, 2] or ["a", "b", None]).
+                   For Optional Literal types (e.g., Literal[0, 1] | None), all literal values and None
+                   are returned as a list. Other union types (e.g., Literal[0, 1] | int) remain as strings.
         default: Default value
         description: Description from docstring
         constraints: Pydantic Field constraints and validators

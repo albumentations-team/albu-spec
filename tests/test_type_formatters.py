@@ -161,6 +161,17 @@ class TestLiteralTypeHandler:
         result = handler.format(Literal[0, "a", 1, "b"], formatter)
         assert result == [0, "a", 1, "b"]
 
+    def test_format_literal_with_type_objects_returns_json_serializable(self):
+        """Literal[int, str] must emit __name__ strings, not raw type objects."""
+        import json
+
+        handler = LiteralTypeHandler()
+        formatter = TypeFormatter()
+        result = handler.format(Literal[int, str, float], formatter)
+        assert result == ["int", "str", "float"]
+        assert not any(isinstance(v, type) for v in result)
+        json.dumps(result)  # Should not raise
+
 
 class TestUnionTypeHandler:
     """Tests for UnionTypeHandler."""
@@ -206,6 +217,7 @@ class TestUnionTypeHandler:
         formatter = TypeFormatter()
         result = handler.format(Literal["image", "mask"] | None, formatter)
         assert isinstance(result, list)
+        assert len(result) == 3
         assert set(result) == {"image", "mask", None}
 
     def test_format_literal_union_int_none(self):
@@ -214,7 +226,17 @@ class TestUnionTypeHandler:
         formatter = TypeFormatter()
         result = handler.format(Literal[0, 1, 2] | None, formatter)
         assert isinstance(result, list)
+        assert len(result) == 4
         assert set(result) == {0, 1, 2, None}
+
+    def test_format_literal_union_multiple_literals_and_none(self):
+        """Test that Union with multiple Literal parts merges all values plus None."""
+        handler = UnionTypeHandler()
+        formatter = TypeFormatter()
+        result = handler.format(Literal[0, 1, 2, 3] | None, formatter)
+        assert isinstance(result, list)
+        assert len(result) == 5
+        assert set(result) == {0, 1, 2, 3, None}
 
     def test_format_regular_union_stays_string(self):
         """Test that regular Union without Literal stays as string."""
@@ -223,6 +245,43 @@ class TestUnionTypeHandler:
         result = handler.format(tuple[int, int] | int, formatter)
         assert isinstance(result, str)
         assert result in ("tuple[int, int] | int", "int | tuple[int, int]")
+
+    def test_format_literal_union_unbounded_falls_back_to_string(self):
+        """Literal | int cannot be a finite list - no type objects in output."""
+        import json
+
+        handler = UnionTypeHandler()
+        formatter = TypeFormatter()
+        result = handler.format(Literal["a", "b"] | int, formatter)
+        assert isinstance(result, str)
+        assert "<class" not in str(result)
+        assert "int" in result
+        json.dumps(result)  # Must be JSON-serializable (no raw type objects)
+
+    def test_format_literal_union_dedupes_and_preserves_order(self):
+        """Multiple Literals with overlap - deduped, stable order."""
+        handler = UnionTypeHandler()
+        formatter = TypeFormatter()
+        result = handler.format(Literal[0, 1, 2, 3] | None, formatter)
+        assert isinstance(result, list)
+        assert len(result) == 5  # 0, 1, 2, 3, None - no duplicates
+        assert set(result) == {0, 1, 2, 3, None}
+        # Order: first-seen wins (from union arg order)
+        assert result.index(0) < result.index(3)
+        assert result[-1] is None  # None appended last per our iteration
+
+    def test_format_literal_with_type_objects_returns_json_serializable(self):
+        """Literal[int, str] etc. must emit strings, not raw type objects (JSON-safe)."""
+        import json
+
+        handler = UnionTypeHandler()
+        formatter = TypeFormatter()
+        result = handler.format(Literal[int, str, float] | None, formatter)
+        assert isinstance(result, list)
+        assert len(result) == 4
+        assert set(result) == {"int", "str", "float", None}
+        assert not any(isinstance(v, type) for v in result)
+        json.dumps(result)  # Should not raise
 
 
 class TestTupleTypeHandler:
@@ -522,6 +581,7 @@ class TestTypeFormatterIntegration:
         formatter = TypeFormatter()
         result = formatter.format(Literal["image", "mask"] | None)
         assert isinstance(result, list)
+        assert len(result) == 3
         assert set(result) == {"image", "mask", None}
 
     def test_format_literal_int_union_none(self):
@@ -529,7 +589,16 @@ class TestTypeFormatterIntegration:
         formatter = TypeFormatter()
         result = formatter.format(Literal[0, 1, 2, 3, 4] | None)
         assert isinstance(result, list)
+        assert len(result) == 6
         assert set(result) == {0, 1, 2, 3, 4, None}
+
+    def test_format_literal_union_multiple_literals_and_none(self):
+        """Test that Union with multiple Literal parts merges all values plus None."""
+        formatter = TypeFormatter()
+        result = formatter.format(Literal[0, 1, 2, 3] | None)
+        assert isinstance(result, list)
+        assert len(result) == 5
+        assert set(result) == {0, 1, 2, 3, None}
 
     def test_format_regular_union_no_literal(self):
         """Test that regular Union without Literal stays as string."""
@@ -544,4 +613,12 @@ class TestTypeFormatterIntegration:
         formatter = TypeFormatter()
         result = formatter.format(Literal["center", "top_left", "bottom_right"])
         assert isinstance(result, list)
+        assert len(result) == 3
         assert set(result) == {"center", "top_left", "bottom_right"}
+
+    def test_format_literal_union_unbounded_type(self):
+        """Literal | int falls back to string, no type objects."""
+        formatter = TypeFormatter()
+        result = formatter.format(Literal["a", "b"] | int)
+        assert isinstance(result, str)
+        assert "<class" not in str(result)

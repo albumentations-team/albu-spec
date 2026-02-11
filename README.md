@@ -61,7 +61,7 @@ Has InitSchema: True
 Supported BBox Types: ['hbb', 'obb']
 ```
 
-**Full metadata as JSON (showing key parameters):**
+**Full metadata as JSON (truncated for brevity):**
 
 ```json
 {
@@ -77,8 +77,7 @@ Supported BBox Types: ['hbb', 'obb']
       "description": "height of the crop.",
       "constraints": {
         "ge": 1.0,
-        "le": null,
-        ...
+        "le": null
       }
     },
     "pad_position": {
@@ -109,8 +108,7 @@ Supported BBox Types: ['hbb', 'obb']
       "description": "Probability of applying the transform. Default: 1.0.",
       "constraints": {
         "ge": 0.0,
-        "le": 1.0,
-        ...
+        "le": 1.0
       }
     }
   },
