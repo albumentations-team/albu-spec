@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "albu-spec"
-version = "0.0.5"
+version = "0.0.6"
 description = "Extract comprehensive metadata from Albumentations transforms including parameters, types, constraints, and docstrings"
 authors = [
     {name = "Vladimir Iglovikov", email = "vladimir@albumentations.ai"}
@@ -30,7 +30,7 @@ classifiers = [
 
 dependencies = [
     "pydantic>=2.0",
-    "google-docstring-parser>=0.0.9",
+    "google-docstring-parser>=0.0.11",
     "typing-extensions>=4.0",
     "albumentationsx",
     "opencv-python-headless",

@@ -36,7 +36,7 @@ repos:
       - id: trailing-whitespace
       - id: requirements-txt-fixer
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.0
+    rev: v0.15.6
     hooks:
       - id: ruff
         exclude: '__pycache__/'
@@ -50,7 +50,7 @@ repos:
       - id: python-check-blanket-noqa
       - id: text-unicode-replacement-char
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.2
     hooks:
       - id: codespell
         additional_dependencies: ["tomli"]
@@ -62,7 +62,7 @@ repos:
         additional_dependencies: [ pydantic>=2.9, google-docstring-parser>=0.0.9, typing-extensions>=4.0 ]
         args: [ --config-file=pyproject.toml ]
   - repo: https://github.com/ternaus/google-docstring-parser
-    rev: 0.0.9
+    rev: 0.0.11
     hooks:
       - id: check-google-docstrings
         files: ^albu_spec/

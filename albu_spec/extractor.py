@@ -17,16 +17,13 @@ from albu_spec.models import ConstraintInfo, ParameterMetadata, TransformCollect
 from albu_spec.schema_parser import SchemaParser
 from albu_spec.type_formatters import TypeFormatter
 
-# Transforms to ignore
+# Transforms to ignore (base classes and non-standard transforms)
 IGNORED_CLASSES = {
     "Lambda",
     "BasicTransform",
     "DualTransform",
     "ImageOnlyTransform",
     "Transform3D",
-    "TextImage",
-    "PiecewiseAffine",
-    "OverlayElements",
     "BaseTransformInitSchema",
 }
 

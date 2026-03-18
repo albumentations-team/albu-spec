@@ -34,9 +34,6 @@ def get_all_transform_classes() -> list[type]:
         "DualTransform",
         "ImageOnlyTransform",
         "Transform3D",
-        "TextImage",
-        "PiecewiseAffine",
-        "OverlayElements",
         "BaseTransformInitSchema",
     }
 
