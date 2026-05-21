@@ -49,7 +49,10 @@ def expected_horizontalflip_metadata() -> dict:
                 },
             },
         },
-        "docstring_short": "Flip the input horizontally around the y-axis.",
+        "docstring_short": (
+            "Flip the image left-right (mirror). Same size and layout; self-inverse. Use inverse()\n"
+            "for TTA to restore predictions to original orientation."
+        ),
         "has_init_schema": True,
     }
 
@@ -59,36 +62,36 @@ def expected_colorjitter_metadata() -> dict:
     """Expected metadata for ColorJitter transform."""
     return {
         "name": "ColorJitter",
-        "module": "albumentations.augmentations.pixel.transforms",
+        "module": "albumentations.augmentations.pixel.color",
         "transform_type": "image_only",
         "targets": ["image", "volume"],
         "parameters": {
-            "brightness": {
-                "name": "brightness",
-                "type_hint": "tuple[float, float] | float",
+            "brightness_range": {
+                "name": "brightness_range",
+                "type_hint": "tuple[float, float]",
                 "default": (0.8, 1.2),
-                "description_prefix": "How much to jitter brightness.",
+                "description_prefix": "Range for the brightness factor",
                 "constraints": None,
             },
-            "contrast": {
-                "name": "contrast",
-                "type_hint": "tuple[float, float] | float",
+            "contrast_range": {
+                "name": "contrast_range",
+                "type_hint": "tuple[float, float]",
                 "default": (0.8, 1.2),
-                "description_prefix": "How much to jitter contrast.",
+                "description_prefix": "Range for the contrast factor",
                 "constraints": None,
             },
-            "saturation": {
-                "name": "saturation",
-                "type_hint": "tuple[float, float] | float",
+            "saturation_range": {
+                "name": "saturation_range",
+                "type_hint": "tuple[float, float]",
                 "default": (0.8, 1.2),
-                "description_prefix": "How much to jitter saturation.",
+                "description_prefix": "Range for the saturation factor",
                 "constraints": None,
             },
-            "hue": {
-                "name": "hue",
-                "type_hint": "tuple[float, float] | float",
+            "hue_range": {
+                "name": "hue_range",
+                "type_hint": "tuple[float, float]",
                 "default": (-0.5, 0.5),
-                "description_prefix": "How much to jitter hue.",
+                "description_prefix": "Range for the hue factor",
                 "constraints": None,
             },
             "p": {
@@ -112,7 +115,10 @@ def expected_colorjitter_metadata() -> dict:
                 },
             },
         },
-        "docstring_short": "Randomly changes the brightness, contrast, saturation, and hue of an image.",
+        "docstring_short": (
+            "Randomly jitter brightness/contrast/saturation/hue in random order. Separate _range per\n"
+            "effect. Strong color augmentation for classification and detection."
+        ),
         "has_init_schema": True,
     }
 
@@ -122,7 +128,7 @@ def expected_additivenoise_metadata() -> dict:
     """Expected metadata for AdditiveNoise transform."""
     return {
         "name": "AdditiveNoise",
-        "module": "albumentations.augmentations.pixel.transforms",
+        "module": "albumentations.augmentations.pixel.noise",
         "transform_type": "image_only",
         "targets": ["image", "volume"],
         "parameters": {
@@ -147,26 +153,6 @@ def expected_additivenoise_metadata() -> dict:
                 "description_prefix": "Parameters for the chosen noise distribution.",
                 "constraints": None,
             },
-            "approximation": {
-                "name": "approximation",
-                "type_hint": "float",
-                "default": 1.0,
-                "description_prefix": "float in [0, 1], default=1.0",
-                "constraints": {
-                    "ge": 0.0,
-                    "le": 1.0,
-                    "gt": None,
-                    "lt": None,
-                    "min_length": None,
-                    "max_length": None,
-                    "multiple_of": None,
-                    "min_value": None,
-                    "max_value": None,
-                    "pattern": None,
-                    "validators": [],
-                    "validator_info": {},
-                },
-            },
             "p": {
                 "name": "p",
                 "type_hint": "float",
@@ -188,7 +174,10 @@ def expected_additivenoise_metadata() -> dict:
                 },
             },
         },
-        "docstring_short": "Apply random noise to image channels using various noise distributions.",
+        "docstring_short": (
+            "Random noise to channels: uniform, gaussian, laplace, or beta. spatial_mode: constant,\n"
+            "per_pixel, or shared. Params depend on noise_type."
+        ),
         "has_init_schema": True,
     }
 
@@ -204,35 +193,35 @@ def expected_affine_metadata() -> dict:
         "parameters": {
             "scale": {
                 "name": "scale",
-                "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]]",
+                "type_hint": "tuple[float, float] | dict[str, tuple[float, float]]",
                 "default": (1.0, 1.0),
-                "description_prefix": 'Scaling factor to use, where `1.0` denotes "no change"',
+                "description_prefix": 'Scaling factor, where `1.0` denotes "no change"',
                 "constraints": None,
             },
             "translate_percent": {
                 "name": "translate_percent",
-                "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]] | None",
+                "type_hint": "tuple[float, float] | dict[str, tuple[float, float]] | None",
                 "default": None,
-                "description_prefix": "Translation as a fraction of the image height/width",
+                "description_prefix": "Translation as a fraction of image",
                 "constraints": None,
             },
             "translate_px": {
                 "name": "translate_px",
-                "type_hint": "tuple[int, int] | int | dict[str, int | tuple[int, int]] | None",
+                "type_hint": "tuple[int, int] | dict[str, tuple[int, int]] | None",
                 "default": None,
                 "description_prefix": "Translation in pixels.",
                 "constraints": None,
             },
             "rotate": {
                 "name": "rotate",
-                "type_hint": "tuple[float, float] | float",
-                "default": 0.0,
+                "type_hint": "tuple[float, float]",
+                "default": (0.0, 0.0),
                 "description_prefix": "Rotation in degrees (**NOT** radians)",
                 "constraints": None,
             },
             "shear": {
                 "name": "shear",
-                "type_hint": "tuple[float, float] | float | dict[str, float | tuple[float, float]]",
+                "type_hint": "tuple[float, float] | dict[str, tuple[float, float]]",
                 "default": (0.0, 0.0),
                 "description_prefix": "Shear in degrees (**NOT** radians)",
                 "constraints": None,
@@ -321,7 +310,10 @@ def expected_affine_metadata() -> dict:
                 },
             },
         },
-        "docstring_short": "Augmentation to apply affine transformations to images.",
+        "docstring_short": (
+            "Apply affine transformations: translation, rotation, scale, shear. Params: scale, translate,\n"
+            "rotate, shear, interpolation, fill."
+        ),
         "has_init_schema": True,
     }
 
