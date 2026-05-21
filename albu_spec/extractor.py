@@ -12,20 +12,11 @@ if TYPE_CHECKING:
 import albumentations as A
 from pydantic import ValidationError
 
+from albu_spec.constants import IGNORED_CLASSES
 from albu_spec.docstring_parser import DocstringParser
 from albu_spec.models import ConstraintInfo, ParameterMetadata, TransformCollection, TransformMetadata
 from albu_spec.schema_parser import SchemaParser
 from albu_spec.type_formatters import TypeFormatter
-
-# Transforms to ignore (base classes and non-standard transforms)
-IGNORED_CLASSES = {
-    "Lambda",
-    "BasicTransform",
-    "DualTransform",
-    "ImageOnlyTransform",
-    "Transform3D",
-    "BaseTransformInitSchema",
-}
 
 
 class TransformMetadataExtractor:

@@ -13,6 +13,7 @@ import inspect
 import albumentations as A
 import pytest
 
+from albu_spec.constants import IGNORED_CLASSES
 from albu_spec.type_comparison import TypeMismatch, compare_types, get_type_mismatch
 from albu_spec.type_extraction import (
     get_common_param_names,
@@ -28,18 +29,9 @@ def get_all_transform_classes() -> list[type]:
         List of transform classes to test
 
     """
-    ignored_classes = {
-        "Lambda",
-        "BasicTransform",
-        "DualTransform",
-        "ImageOnlyTransform",
-        "Transform3D",
-        "BaseTransformInitSchema",
-    }
-
     transforms = []
     for name, obj in inspect.getmembers(A, predicate=inspect.isclass):
-        if name in ignored_classes:
+        if name in IGNORED_CLASSES:
             continue
 
         try:
