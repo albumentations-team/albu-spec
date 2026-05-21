@@ -13,7 +13,7 @@ import inspect
 import albumentations as A
 import pytest
 
-from albu_spec.extractor import IGNORED_CLASSES
+from albu_spec.constants import IGNORED_CLASSES
 from albu_spec.type_comparison import TypeMismatch, compare_types, get_type_mismatch
 from albu_spec.type_extraction import (
     get_common_param_names,
