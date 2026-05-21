@@ -36,7 +36,7 @@ repos:
       - id: trailing-whitespace
       - id: requirements-txt-fixer
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.6
+    rev: v0.15.13
     hooks:
       - id: ruff
         exclude: '__pycache__/'
@@ -55,11 +55,11 @@ repos:
       - id: codespell
         additional_dependencies: ["tomli"]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1
+    rev: v2.1.0
     hooks:
       - id: mypy
         files: ^albu_spec/
-        additional_dependencies: [ pydantic>=2.9, google-docstring-parser>=0.0.9, typing-extensions>=4.0 ]
+        additional_dependencies: [ pydantic>=2.9, google-docstring-parser>=0.0.11, typing-extensions>=4.0 ]
         args: [ --config-file=pyproject.toml ]
   - repo: https://github.com/ternaus/google-docstring-parser
     rev: 0.0.11
