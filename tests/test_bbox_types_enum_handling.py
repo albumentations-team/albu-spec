@@ -25,6 +25,7 @@ class TestBBoxTypeEnumHandling:
 
         # Mock transform with enum-based _supported_bbox_types
         class MockTransform(A.DualTransform):
+            _targets: ClassVar = ("image", "bboxes")
             _supported_bbox_types = frozenset([BBoxType.HBB, BBoxType.OBB])
 
         extractor = TransformMetadataExtractor()
@@ -42,6 +43,7 @@ class TestBBoxTypeEnumHandling:
             HBB = "HBB"
 
         class MockTransform(A.DualTransform):
+            _targets: ClassVar = ("image", "bboxes")
             _supported_bbox_types = frozenset([BBoxType.HBB, "OBB"])
 
         extractor = TransformMetadataExtractor()
@@ -54,6 +56,7 @@ class TestBBoxTypeEnumHandling:
         """Verify uppercase strings are converted to lowercase."""
 
         class MockTransform(A.DualTransform):
+            _targets: ClassVar = ("image", "bboxes")
             _supported_bbox_types = frozenset(["HBB", "OBB"])
 
         extractor = TransformMetadataExtractor()
@@ -68,13 +71,14 @@ class TestBBoxTypeEnumHandling:
         class TargetEnum(Enum):
             IMAGE = "IMAGE"
             MASK = "MASK"
+            BBOXES = "BBOXES"
 
         class BBoxTypeEnum(Enum):
             HBB = "HBB"
             OBB = "OBB"
 
         class MockTransform(A.DualTransform):
-            _targets: ClassVar = [TargetEnum.IMAGE, TargetEnum.MASK]
+            _targets: ClassVar = [TargetEnum.IMAGE, TargetEnum.MASK, TargetEnum.BBOXES]
             _supported_bbox_types: ClassVar = frozenset([BBoxTypeEnum.HBB, BBoxTypeEnum.OBB])
 
         extractor = TransformMetadataExtractor()
@@ -83,7 +87,7 @@ class TestBBoxTypeEnumHandling:
         bbox_types = extractor._get_supported_bbox_types(MockTransform)
 
         # Both should extract enum values and convert to lowercase
-        assert targets == ["image", "mask"]
+        assert targets == ["image", "mask", "bboxes"]
         assert bbox_types == ["hbb", "obb"]
 
         # Both should be lists of strings
@@ -102,6 +106,7 @@ class TestBBoxTypeEnumHandling:
             INVALID = 123  # Non-string value
 
         class MockTransform(A.DualTransform):
+            _targets: ClassVar = ("image", "bboxes")
             _supported_bbox_types = frozenset([BBoxType.HBB, BBoxType.INVALID])
 
         extractor = TransformMetadataExtractor()

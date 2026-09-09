@@ -9,5 +9,6 @@ IGNORED_CLASSES = {
     "DualTransform",
     "ImageOnlyTransform",
     "Transform3D",
+    "VolumeOnlyTransform",
     "BaseTransformInitSchema",
 }
