@@ -82,11 +82,14 @@ class TestBBoxTypeExtraction:
 class TestBBoxTypeConsistency:
     """Test consistency of bbox type extraction across all transforms."""
 
-    def test_all_dual_transforms_have_bbox_types(self) -> None:
-        """Test that all dual transforms have bbox types defined."""
+    def test_bbox_types_match_declared_targets(self) -> None:
+        """Only transforms accepting bounding boxes need bbox type metadata."""
         collection = get_all_transforms_metadata()
 
         for transform in collection.dual:
+            if "bboxes" not in transform.targets:
+                assert transform.supported_bbox_types is None, f"{transform.name} does not accept bounding boxes"
+                continue
             assert transform.supported_bbox_types is not None, (
                 f"Dual transform {transform.name} should have bbox types defined"
             )
@@ -113,11 +116,13 @@ class TestBBoxTypeConsistency:
                 for bbox_type in transform.supported_bbox_types:
                     assert bbox_type in valid_types, f"{transform.name} has invalid bbox type: {bbox_type}"
 
-    def test_all_dual_transforms_support_hbb(self) -> None:
-        """Test that all dual transforms support at least HBB."""
+    def test_bbox_transforms_support_hbb(self) -> None:
+        """Transforms accepting bounding boxes support at least HBB."""
         collection = get_all_transforms_metadata()
 
         for transform in collection.dual:
+            if "bboxes" not in transform.targets:
+                continue
             assert transform.supported_bbox_types is not None
             assert "hbb" in transform.supported_bbox_types, (
                 f"{transform.name} should support HBB (horizontal bounding boxes)"
@@ -200,11 +205,11 @@ class TestBBoxTypeFiltering:
             if t.supported_bbox_types and "hbb" in t.supported_bbox_types and "obb" not in t.supported_bbox_types
         )
 
-        total_dual = len(collection.dual)
+        total_bbox = sum("bboxes" in transform.targets for transform in collection.dual)
 
         assert obb_count > 0, "Should have some transforms with OBB support"
         # Note: hbb_only_count may be 0 if all dual transforms now support OBB
-        assert obb_count + hbb_only_count == total_dual, "All dual transforms should support either HBB+OBB or HBB-only"
+        assert obb_count + hbb_only_count == total_bbox, "Every bbox transform must support HBB+OBB or HBB-only"
 
 
 class TestBBoxTypeEdgeCases:

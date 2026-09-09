@@ -251,6 +251,12 @@ class TransformMetadataExtractor:
         if issubclass(transform_class, A.DualTransform):
             return "dual"
 
+        targets = set(self._get_targets(transform_class))
+        if "volume" in targets and "image" not in targets:
+            return "transforms_3d"
+        if "image" in targets:
+            return "image_only" if targets == {"image"} else "dual"
+
         return "unknown"
 
     def _get_targets(self, transform_class: type) -> list[str]:
@@ -291,7 +297,7 @@ class TransformMetadataExtractor:
         """
         # Only dual transforms have bbox support
         try:
-            if not issubclass(transform_class, A.DualTransform):
+            if not issubclass(transform_class, A.DualTransform) or "bboxes" not in self._get_targets(transform_class):
                 return None
         except (TypeError, AttributeError):
             return None
