@@ -9,8 +9,23 @@ ci:
   autoupdate_schedule: weekly
   skip: [ ]
   submodules: false
+  parallel: true
 
 repos:
+  - repo: local
+    hooks:
+      - id: check-legal-integrity
+        name: Check license and CLA provenance integrity
+        entry: python scripts/verify_legal_integrity.py
+        language: system
+        pass_filenames: false
+        files: ^(LICENSE$|LICENSING\.md$|CLA\.md$|CONTRIBUTING\.md$|README\.md$|legal/cla/|pyproject\.toml$|MANIFEST\.in$|scripts/verify_legal_integrity\.py$|tests/test_legal_integrity\.py$|\.github/workflows/(ci|pypi-upload)\.yml$)
+  - repo: https://github.com/ternaus/ruff-policy-hooks
+    rev: v0.4.0
+    hooks:
+      - id: check-ruff-suppressions
+        name: Protect mandatory Ruff complexity diagnostics
+        args: [--protect=C901,PLR0911,PLR0912,PLR0915]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
@@ -23,7 +38,9 @@ repos:
       - id: check-shebang-scripts-are-executable
       - id: check-symlinks
       - id: check-toml
+      - id: check-yaml
       - id: check-xml
+      - id: check-merge-conflict
       - id: detect-private-key
       - id: forbid-new-submodules
       - id: forbid-submodules
@@ -36,12 +53,18 @@ repos:
       - id: trailing-whitespace
       - id: requirements-txt-fixer
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.13
+    rev: v0.16.5
     hooks:
       - id: ruff
         exclude: '__pycache__/'
         args: [ --fix ]
       - id: ruff-format
+        types_or: [python, pyi, jupyter]
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.21.2
+    hooks:
+      - id: pyupgrade
+        args: [--py310-plus]
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -50,12 +73,17 @@ repos:
       - id: python-check-blanket-noqa
       - id: text-unicode-replacement-char
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
       - id: codespell
-        additional_dependencies: ["tomli"]
+        additional_dependencies: ["tomli>=2.4.1"]
+  - repo: https://github.com/Ternaus/numpy-assert-lint
+    rev: v0.2.0
+    hooks:
+      - id: numpy-assert-lint
+        files: ^tests/
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.1.0
+    rev: v2.3.1
     hooks:
       - id: mypy
         files: ^albu_spec/
@@ -66,4 +94,4 @@ repos:
     hooks:
       - id: check-google-docstrings
         files: ^albu_spec/
-        additional_dependencies: ["tomli>=2.0.0"]
+        additional_dependencies: ["tomli>=2.4.1"]

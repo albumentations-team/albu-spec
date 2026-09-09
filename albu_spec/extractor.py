@@ -128,8 +128,11 @@ class TransformMetadataExtractor:
             type_hints = {}
 
         for param_name, param in init_signature.parameters.items():
-            # Skip self and strict (strict is in InitSchema but not actually in __init__)
-            if param_name in {"self", "strict"}:
+            # Variadic forwarding parameters are not configurable transform parameters.
+            if param_name in {"self", "strict"} or param.kind in {
+                inspect.Parameter.VAR_POSITIONAL,
+                inspect.Parameter.VAR_KEYWORD,
+            }:
                 continue
 
             # Extract raw type annotation first (separation of concerns)

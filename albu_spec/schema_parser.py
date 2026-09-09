@@ -239,7 +239,7 @@ class SchemaParser:
                 return evaluated
         return None
 
-    def _merge_field_constraints(self, target: ConstraintInfo, source: ConstraintInfo) -> None:  # noqa: C901
+    def _merge_field_constraints(self, target: ConstraintInfo, source: ConstraintInfo) -> None:
         """Merge constraint fields from source to target.
 
         Args:
@@ -247,30 +247,25 @@ class SchemaParser:
             source: Constraint object to merge from
 
         """
-        if source.ge is not None:
-            target.ge = source.ge
-        if source.le is not None:
-            target.le = source.le
-        if source.gt is not None:
-            target.gt = source.gt
-        if source.lt is not None:
-            target.lt = source.lt
-        if source.min_length is not None:
-            target.min_length = source.min_length
-        if source.max_length is not None:
-            target.max_length = source.max_length
-        if source.multiple_of is not None:
-            target.multiple_of = source.multiple_of
-        if source.pattern is not None:
-            target.pattern = source.pattern
+        for field_name in (
+            "ge",
+            "le",
+            "gt",
+            "lt",
+            "min_length",
+            "max_length",
+            "multiple_of",
+            "pattern",
+            "min_value",
+            "max_value",
+        ):
+            value = getattr(source, field_name)
+            if value is not None:
+                setattr(target, field_name, value)
         if source.validator_info:
             target.validator_info.update(source.validator_info)
         if source.validators:
             target.validators.extend(source.validators)
-        if source.min_value is not None:
-            target.min_value = source.min_value
-        if source.max_value is not None:
-            target.max_value = source.max_value
 
     def _extract_validator_bounds(self, constraints: ConstraintInfo, validator_info: dict[str, Any]) -> None:
         """Extract min/max values from validator info.

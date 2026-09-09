@@ -85,6 +85,19 @@ def test_init_params_have_metadata(transform_class):
     assert not missing, f"{transform_class.__name__}: Parameters {missing} in __init__ but not extracted to metadata"
 
 
+def test_variadic_init_parameters_are_not_extracted():
+    """Variadic forwarding parameters are not part of transform configuration."""
+
+    class VariadicTransform(A.ImageOnlyTransform):
+        def __init__(self, value: int = 1, *_args: object, **_kwargs: object) -> None:
+            super().__init__()
+            self.value = value
+
+    metadata = get_transform_metadata(VariadicTransform)
+
+    assert set(metadata.parameters) == {"value"}, "Only explicit constructor parameters should be exposed as metadata"
+
+
 @pytest.mark.parametrize(
     "transform_class",
     [

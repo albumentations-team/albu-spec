@@ -1,0 +1,7 @@
+include LICENSE
+include LICENSING.md
+exclude CLA.md
+prune legal
+prune signatures
+prune tests
+prune scripts
