@@ -5,21 +5,33 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 jobs:
   upload:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v7
-      with:
-        enable-cache: true
-        python-version: "3.10"
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      run: |
-        rm -rf tests benchmark
-        uv build
-        uv tool run twine upload dist/*
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: albumentations-team/ci-foundation/actions/setup-python-uv@6b9045dbea58026a1e8f96b0392c411934a27199
+        with:
+          python-version: "3.13"
+          uv-version: "0.12.0"
+          cache-dependency-glob: pyproject.toml
+          cache-suffix: albu-spec-release
+      - name: Verify license and CLA provenance
+        run: python scripts/verify_legal_integrity.py
+      - name: Build distributions
+        run: uv build
+      - name: Verify distribution license and CLA exclusion
+        run: python scripts/verify_legal_integrity.py --artifacts dist/*.whl dist/*.tar.gz
+      - name: Check distribution metadata
+        run: uv tool run --from "twine==7.0.0" twine check dist/*
+      - name: Publish distributions
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv tool run --from "twine==7.0.0" twine upload dist/*

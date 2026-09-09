@@ -136,14 +136,14 @@ def expected_additivenoise_metadata() -> dict:
                 "name": "noise_type",
                 "type_hint": ["uniform", "gaussian", "laplace", "beta"],
                 "default": "uniform",
-                "description_prefix": "Type of noise distribution to use.",
+                "description_prefix": "Noise distribution.",
                 "constraints": None,
             },
             "spatial_mode": {
                 "name": "spatial_mode",
-                "type_hint": ["constant", "per_pixel", "shared"],
+                "type_hint": ["constant", "per_pixel", "shared", "patch"],
                 "default": "constant",
-                "description_prefix": "How to generate and apply the noise.",
+                "description_prefix": "Spatial sampling mode.",
                 "constraints": None,
             },
             "noise_params": {
@@ -175,8 +175,8 @@ def expected_additivenoise_metadata() -> dict:
             },
         },
         "docstring_short": (
-            "Random noise to channels: uniform, gaussian, laplace, or beta. spatial_mode: constant,\n"
-            "per_pixel, or shared. Params depend on noise_type."
+            "Add uniform, Gaussian, Laplace, or beta-distributed noise in constant, per-pixel, channel-shared, or "
+            "randomly\nlocalized rectangular patch modes."
         ),
         "has_init_schema": True,
     }
@@ -501,5 +501,5 @@ def test_additivenoise_spatial_mode_is_str_list() -> None:
     spatial_mode = metadata.parameters["spatial_mode"].type_hint
 
     assert isinstance(spatial_mode, list), "spatial_mode type_hint should be a list"
-    assert spatial_mode == ["constant", "per_pixel", "shared"], "spatial_mode should be list of strings"
+    assert spatial_mode == ["constant", "per_pixel", "shared", "patch"], "spatial_mode should be list of strings"
     assert all(isinstance(x, str) for x in spatial_mode), "All values should be strings"

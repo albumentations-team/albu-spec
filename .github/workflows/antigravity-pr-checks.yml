@@ -1,0 +1,36 @@
+name: Antigravity PR Checks
+
+on: # zizmor: ignore[dangerous-triggers] trusted-base review reads untrusted PR data only
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: antigravity-pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  antigravity-review:
+    name: Antigravity Review
+    if: >-
+      ${{
+        github.repository == 'albumentations-team/albu-spec' &&
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      }}
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    uses: albumentations-team/ci-foundation/.github/workflows/antigravity-review.yml@6b9045dbea58026a1e8f96b0392c411934a27199
+    with:
+      policy-path: .github/ci-foundation/antigravity.toml
+      gcp-location: ${{ vars.ANTIGRAVITY_GCP_LOCATION }}
+      gcp-project-id: ${{ vars.ANTIGRAVITY_GCP_PROJECT_ID }}
+      gcp-service-account: ${{ vars.ANTIGRAVITY_GCP_SERVICE_ACCOUNT }}
+      gcp-workload-identity-provider: ${{ vars.ANTIGRAVITY_GCP_WIF_PROVIDER }}
+      gemini-cli-version: ${{ vars.GEMINI_CLI_VERSION || '0.51.0' }}
+      gemini-model: ${{ vars.GEMINI_MODEL }}
