@@ -31,6 +31,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv sync --all-extras --dev
+uv pip install --torch-backend auto "torch>=2.13.0"
 ```
 
 ### 3. Install Pre-commit Hooks
@@ -109,19 +110,29 @@ uv run mypy albu_spec/
 
 ## Contributor License Agreement (CLA)
 
-Before we can accept your contribution, you must sign our [Contributor License Agreement (CLA)](CLA.md).
+Before we can accept your contribution, you must accept the
+[albu-spec Contributor License Agreement Version 2.0](CLA.md). It lets
+Albumentations, LLC publish accepted contributions under AGPL-3.0-only and
+offer the same contributions under separately negotiated commercial terms.
+You retain ownership of your work.
 
-When you open your first pull request, the CLA Assistant bot will automatically check if you've signed. To sign, simply comment on the PR:
+A Version 1 signature does **not** accept Version 2.0. Contributors recorded
+only against Version 1 must review and accept Version 2.0 before another
+contribution can be merged. The new acceptance covers qualifying contributions
+submitted before, on, and after the Version 2.0 acceptance date; it does not
+claim that Version 2.0 was accepted earlier.
 
+For an individual contribution, comment on the pull request with this exact
+statement:
+
+```text
+I have read and agree to the albu-spec CLA Version 2.0 (September 9, 2026) as an individual.
 ```
-I have read the CLA Document and I hereby sign the CLA
-```
 
-The CLA grants us the rights to use your contributions under both:
-- **AGPL-3.0 License** (for open source use)
-- **Commercial License** (for proprietary/commercial use)
-
-This ensures albu-spec can maintain its dual licensing model and continue to serve both open source and commercial users.
+If an employer or another legal entity owns or controls the contribution, use
+the Entity Acceptance process in [CLA.md](CLA.md). A corporate signer must
+identify the exact legal entity, their authority, and the covered contributors.
+Maintainers verify the applicable Version 2.0 Acceptance Record before merge.
 
 ## Pull Request Process
 
@@ -213,6 +224,7 @@ albu-spec/
 ├── pyproject.toml         # Project configuration
 ├── README.md
 ├── LICENSE
+├── LICENSING.md          # Current license boundary and release history
 ├── CLAUDE.md             # AI assistant guide
 ├── CLA.md                # Contributor License Agreement
 └── CONTRIBUTING.md       # This file
@@ -253,11 +265,10 @@ This project adheres to a code of professional conduct:
 
 ## License
 
-By contributing to albu-spec, you agree that your contributions will be licensed under both:
-- **AGPL-3.0 License** (for open source use)
-- **Commercial License** (for proprietary/commercial use)
-
-This is formalized through the CLA signing process.
+Accepted contributions are published under AGPL-3.0-only. The CLA also lets
+Albumentations, LLC offer them under separately negotiated commercial terms.
+See [LICENSING.md](LICENSING.md) for the repository license and release
+history.
 
 ---
 

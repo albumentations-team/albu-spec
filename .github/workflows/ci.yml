@@ -6,33 +6,70 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v7
-      with:
-        enable-cache: true
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: uv sync --all-extras --dev
-    - name: Run tests
-      run: uv run pytest
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: albumentations-team/ci-foundation/actions/setup-python-uv@6b9045dbea58026a1e8f96b0392c411934a27199
+        with:
+          python-version: ${{ matrix.python-version }}
+          uv-version: "0.12.0"
+          cache-dependency-glob: pyproject.toml
+          cache-suffix: albu-spec-tests-${{ matrix.python-version }}
+      - name: Install dependencies
+        run: uv pip install --torch-backend cpu -e . "pytest>=7.0" "pytest-cov>=4.0" "torch>=2.13.0"
+      - name: Verify CPU-only Torch
+        uses: albumentations-team/ci-foundation/actions/torch-cpu@6b9045dbea58026a1e8f96b0392c411934a27199
+        with:
+          mode: verify
+      - name: Run tests
+        run: uv run --no-sync pytest
 
   pre-commit:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v7
-      with:
-        enable-cache: true
-        python-version: "3.10"
-    - name: Run pre-commit
-      run: uv tool run --from pre-commit pre-commit run --all-files
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: albumentations-team/ci-foundation/actions/setup-python-uv@6b9045dbea58026a1e8f96b0392c411934a27199
+        with:
+          python-version: "3.13"
+          uv-version: "0.12.0"
+          cache-dependency-glob: pyproject.toml
+          cache-suffix: albu-spec-pre-commit
+      - name: Run pre-commit
+        run: uv tool run --from "pre-commit==4.6.2" pre-commit run --all-files --show-diff-on-failure
+
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: albumentations-team/ci-foundation/actions/setup-python-uv@6b9045dbea58026a1e8f96b0392c411934a27199
+        with:
+          python-version: "3.13"
+          uv-version: "0.12.0"
+          cache-dependency-glob: pyproject.toml
+          cache-suffix: albu-spec-package
+      - name: Build distributions
+        run: uv build --out-dir dist
+      - name: Verify distribution license and CLA exclusion
+        run: python scripts/verify_legal_integrity.py --artifacts dist/*.whl dist/*.tar.gz
+      - name: Check distribution metadata
+        run: uv tool run --from "twine==7.0.0" twine check dist/*

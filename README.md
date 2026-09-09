@@ -20,16 +20,15 @@ bounds and custom validators
 
 ## Installation
 
+AlbumentationsX requires a PyTorch build selected for the target machine. For Linux CPU-only environments:
+
 ```bash
+pip install "torch>=2.13.0" --index-url https://download.pytorch.org/whl/cpu
 pip install albu-spec
 ```
 
-**Note**: This package requires `albumentationsx` to be installed separately,
-as it's designed to introspect an existing AlbumentationsX installation:
-
-```bash
-pip install albumentationsx
-```
+For CUDA or macOS, install the matching PyTorch build first, then run `pip install albu-spec`. The `albu-spec`
+installation includes AlbumentationsX and headless OpenCV.
 
 ## Quick Start
 
@@ -172,7 +171,7 @@ for transform_class in transforms_to_check:
 ```
 Affine: ['hbb', 'obb']
 Rotate: ['hbb', 'obb']
-CenterCrop: ['hbb']
+CenterCrop: ['hbb', 'obb']
 ColorJitter: No bbox support (not a dual transform)
 ```
 
@@ -553,9 +552,10 @@ for param_name, param in metadata.parameters.items():
 
 - Python >= 3.10
 - pydantic >= 2.0
-- google-docstring-parser >= 0.0.8
+- google-docstring-parser >= 0.0.11
 - typing-extensions >= 4.0
-- albumentationsx (installed separately, imports as `albumentations`)
+- PyTorch >= 2.13, installed for the target CPU, CUDA, or MPS environment
+- albumentationsx >= 2.4.6 (installed with `albu-spec`, imported as `albumentations`)
 
 ## Contributing
 
@@ -568,11 +568,14 @@ For questions, open an [issue](https://github.com/albumentations-team/albu-spec/
 
 ## License
 
-Dual License:
-- **AGPL-3.0** for open source use
-- **Commercial License** for proprietary/commercial applications
+The public repository is available under
+[AGPL-3.0-only](LICENSE). The AGPL permits commercial use subject to its
+terms. Albumentations, LLC also offers separately negotiated commercial
+licenses with alternative rights defined in the applicable agreement or order
+form. See [LICENSING.md](LICENSING.md) for the current license boundary and
+release history.
 
-For licensing questions, contact: vladimir@albumentations.ai
+For licensing questions, contact vladimir@albumentations.ai.
 
 ## Related Projects
 

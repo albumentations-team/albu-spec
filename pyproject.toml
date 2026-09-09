@@ -1,23 +1,23 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = ["setuptools>=77.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "albu-spec"
-version = "0.0.6"
+version = "0.0.7"
 description = "Extract comprehensive metadata from Albumentations transforms including parameters, types, constraints, and docstrings"
 authors = [
     {name = "Vladimir Iglovikov", email = "vladimir@albumentations.ai"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "AGPL-3.0-or-later OR Commercial"}
+license = "AGPL-3.0-only"
+license-files = ["LICENSE", "LICENSING.md"]
 keywords = ["albumentations", "metadata", "computer-vision", "augmentation", "transforms"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -32,17 +32,18 @@ dependencies = [
     "pydantic>=2.0",
     "google-docstring-parser>=0.0.11",
     "typing-extensions>=4.0",
-    "albumentationsx",
+    "albumentationsx>=2.4.6",
     "opencv-python-headless",
 ]
 
 [project.optional-dependencies]
 dev = [
+    "pre-commit>=4.6.2",
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "ruff>=0.1.0",
     "mypy>=1.0",
-    "albumentationsx>=2.0.15",
+    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [project.urls]
@@ -52,6 +53,7 @@ Documentation = "https://github.com/albumentations-team/albu-spec#readme"
 
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["albu_spec*"]
 
 [tool.setuptools.package-data]
 albu_spec = ["py.typed"]
@@ -63,7 +65,11 @@ target-version = "py310"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
+    "COM812",    # conflicts with the formatter
+    "CPY001",    # the repository carries one canonical license notice
     "N812",      # lowercase imported as non-lowercase
+    "D203",      # conflicts with D211
+    "D213",      # conflicts with D212
     "D401",      # first line imperative mood
     "D104",      # missing docstring in public package
     "ANN401",    # any type

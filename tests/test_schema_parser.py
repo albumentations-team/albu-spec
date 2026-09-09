@@ -286,6 +286,42 @@ def test_constraint_info_defaults():
     assert info.validator_info == {}
 
 
+def test_merge_field_constraints(parser):
+    """Test scalar constraints and validator metadata are merged."""
+    target = ConstraintInfo(ge=-1, validators=["existing"], validator_info={"existing": {}})
+    source = ConstraintInfo(
+        ge=0,
+        le=1,
+        gt=-1,
+        lt=2,
+        min_length=1,
+        max_length=3,
+        multiple_of=0.5,
+        min_value=0,
+        max_value=1,
+        pattern="value",
+        validators=["new"],
+        validator_info={"new": {}},
+    )
+
+    parser._merge_field_constraints(target, source)
+
+    assert target == ConstraintInfo(
+        ge=0,
+        le=1,
+        gt=-1,
+        lt=2,
+        min_length=1,
+        max_length=3,
+        multiple_of=0.5,
+        min_value=0,
+        max_value=1,
+        pattern="value",
+        validators=["existing", "new"],
+        validator_info={"existing": {}, "new": {}},
+    ), "All source constraints should merge without discarding existing validator metadata"
+
+
 @pytest.mark.parametrize(
     "field_value,expected",
     [
