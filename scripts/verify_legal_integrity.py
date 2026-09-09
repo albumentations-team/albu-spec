@@ -174,23 +174,30 @@ def collect_source_errors(repo_root: Path = REPO_ROOT) -> list[str]:
     return errors
 
 
-def _artifact_members(artifact: Path) -> dict[str, bytes]:
+def _artifact_members(artifact: Path) -> tuple[dict[str, bytes], list[str]]:
+    members: dict[str, bytes] = {}
+    duplicates: set[str] = set()
     if zipfile.is_zipfile(artifact):
         with zipfile.ZipFile(artifact) as archive:
-            return {name: archive.read(name) for name in archive.namelist() if not name.endswith("/")}
-    members: dict[str, bytes] = {}
-    with tarfile.open(artifact, "r:*") as archive:
-        for member in archive.getmembers():
-            if not member.isfile():
-                continue
-            extracted = archive.extractfile(member)
-            if extracted is not None:
-                members[member.name] = extracted.read()
-    return members
-
-
-def _matching_members(members: Mapping[str, bytes], relative_path: str) -> list[str]:
-    return [name for name in members if name == relative_path or name.endswith(f"/{relative_path}")]
+            for member in archive.infolist():
+                if member.is_dir():
+                    continue
+                if member.filename in members:
+                    duplicates.add(member.filename)
+                else:
+                    members[member.filename] = archive.read(member)
+    else:
+        with tarfile.open(artifact, "r:*") as archive:
+            for member in archive.getmembers():
+                if not member.isfile():
+                    continue
+                if member.name in members:
+                    duplicates.add(member.name)
+                    continue
+                extracted = archive.extractfile(member)
+                if extracted is not None:
+                    members[member.name] = extracted.read()
+    return members, sorted(duplicates)
 
 
 def _metadata_member_names(artifact: Path, members: Mapping[str, bytes]) -> list[str]:
@@ -240,12 +247,19 @@ def _license_file_errors(
     expected_files: Mapping[str, bytes],
 ) -> list[str]:
     errors: list[str] = []
+    metadata_members = _metadata_member_names(artifact, members)
+    if len(metadata_members) != 1:
+        return errors
+
+    license_root = PurePosixPath(metadata_members[0]).parent
+    if artifact.suffix == ".whl":
+        license_root /= "licenses"
 
     for relative_path, expected_bytes in expected_files.items():
-        matches = _matching_members(members, relative_path)
-        if len(matches) != 1:
-            errors.append(f"{artifact.name}: expected one copy of {relative_path}, found {len(matches)}")
-        elif members[matches[0]] != expected_bytes:
+        member_name = str(license_root / relative_path)
+        if member_name not in members:
+            errors.append(f"{artifact.name}: missing license file at {member_name}")
+        elif members[member_name] != expected_bytes:
             errors.append(f"{artifact.name}: {relative_path} differs from the source file")
     return errors
 
@@ -269,8 +283,9 @@ def _forbidden_file_errors(artifact: Path, members: Mapping[str, bytes]) -> list
 
 def collect_artifact_errors(artifact: Path, expected_files: Mapping[str, bytes]) -> list[str]:
     """Collect license metadata and source-only file violations from an artifact."""
-    members = _artifact_members(artifact)
+    members, duplicates = _artifact_members(artifact)
     return [
+        *(f"{artifact.name}: duplicate archive member: {name}" for name in duplicates),
         *_metadata_errors(artifact, members),
         *_license_file_errors(artifact, members, expected_files),
         *_forbidden_file_errors(artifact, members),
