@@ -10,7 +10,7 @@ authors = [
     {name = "Vladimir Iglovikov", email = "vladimir@albumentations.ai"}
 ]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "AGPL-3.0-only"
 license-files = ["LICENSE", "LICENSING.md"]
 keywords = ["albumentations", "metadata", "computer-vision", "augmentation", "transforms"]
@@ -20,10 +20,10 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Image Processing",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -43,7 +43,6 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.1.0",
     "mypy>=1.0",
-    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [project.urls]
@@ -60,7 +59,7 @@ albu_spec = ["py.typed"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -99,7 +98,7 @@ ignore = [
 ]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
