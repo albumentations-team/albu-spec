@@ -550,7 +550,7 @@ for param_name, param in metadata.parameters.items():
 
 ## Requirements
 
-- Python >= 3.10
+- Python >= 3.11
 - pydantic >= 2.0
 - google-docstring-parser >= 0.0.11
 - typing-extensions >= 4.0

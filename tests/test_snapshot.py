@@ -17,6 +17,7 @@ import albumentations as A
 import pytest
 
 from albu_spec import get_transform_metadata
+from tests.test_utils import get_expected_targets
 
 
 @pytest.fixture
@@ -26,7 +27,7 @@ def expected_horizontalflip_metadata() -> dict:
         "name": "HorizontalFlip",
         "module": "albumentations.augmentations.geometric.flip",
         "transform_type": "dual",
-        "targets": ["image", "mask", "bboxes", "keypoints", "volume", "mask3d"],
+        "targets": get_expected_targets("image", "mask", "bboxes", "keypoints", "volume", "mask3d"),
         "parameters": {
             "p": {
                 "name": "p",
@@ -64,7 +65,7 @@ def expected_colorjitter_metadata() -> dict:
         "name": "ColorJitter",
         "module": "albumentations.augmentations.pixel.color",
         "transform_type": "image_only",
-        "targets": ["image", "volume"],
+        "targets": get_expected_targets("image", "volume"),
         "parameters": {
             "brightness_range": {
                 "name": "brightness_range",
@@ -130,7 +131,7 @@ def expected_additivenoise_metadata() -> dict:
         "name": "AdditiveNoise",
         "module": "albumentations.augmentations.pixel.noise",
         "transform_type": "image_only",
-        "targets": ["image", "volume"],
+        "targets": get_expected_targets("image", "volume"),
         "parameters": {
             "noise_type": {
                 "name": "noise_type",
@@ -189,7 +190,7 @@ def expected_affine_metadata() -> dict:
         "name": "Affine",
         "module": "albumentations.augmentations.geometric.transforms",
         "transform_type": "dual",
-        "targets": ["image", "mask", "bboxes", "keypoints", "volume", "mask3d"],
+        "targets": get_expected_targets("image", "mask", "bboxes", "keypoints", "volume", "mask3d"),
         "parameters": {
             "scale": {
                 "name": "scale",

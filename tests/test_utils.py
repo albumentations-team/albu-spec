@@ -4,6 +4,19 @@ from __future__ import annotations
 
 import inspect
 
+from albumentations.core.type_definitions import Targets
+
+
+def get_expected_targets(*single_targets: str) -> list[str]:
+    """Include batch targets exposed by the installed AlbumentationsX version."""
+    batch_targets = {"images": "image", "masks": "mask", "volumes": "volume", "masks3d": "mask3d"}
+    expected = []
+    for target in Targets:
+        name = target.value.lower()
+        if batch_targets.get(name, name) in single_targets:
+            expected.append(name)
+    return expected
+
 
 def normalize_type_string(type_str: str | list[str]) -> set[str]:
     """Normalize type string for comparison.
