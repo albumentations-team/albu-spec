@@ -4,6 +4,7 @@ import albumentations as A
 import pytest
 
 from albu_spec import get_all_transforms_metadata, get_transform_metadata
+from tests.test_utils import get_expected_targets
 
 
 @pytest.mark.parametrize(
@@ -18,7 +19,7 @@ def test_concrete_transform_classification(transform_class, expected_group, expe
     """Concrete transforms retain their supported targets in a usable catalog group."""
     metadata = get_transform_metadata(transform_class)
     assert metadata.transform_type == expected_group, f"Unexpected group for {metadata.name}"
-    assert set(metadata.targets) == expected_targets, f"Unexpected targets for {metadata.name}"
+    assert metadata.targets == get_expected_targets(*expected_targets), f"Unexpected targets for {metadata.name}"
     assert metadata.supported_bbox_types is None, f"{metadata.name} does not accept bounding boxes"
 
     collection = get_all_transforms_metadata()
